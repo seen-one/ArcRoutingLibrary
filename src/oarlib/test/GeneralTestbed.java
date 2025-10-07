@@ -243,11 +243,12 @@ public class GeneralTestbed {
 
                             //solve
                             WindyRPP wrpp = new WindyRPP(wg2, "Instance");
-                            WRPP_Rui wrppSolver = new WRPP_Rui(wrpp);
-                            wrppSolver.setFilePrefix(args[2]);
-
-                            wrppSolver.trySolve();
-                            System.out.println(wrppSolver.printCurrentSol());
+                            // STUBBED OUT - Missing WRPP_Rui class
+                            // WRPP_Rui wrppSolver = new WRPP_Rui(wrpp);
+                            // wrppSolver.setFilePrefix(args[2]);
+                            // wrppSolver.trySolve();
+                            // System.out.println(wrppSolver.printCurrentSol());
+                            System.out.println("WRPP solver functionality is currently disabled due to missing WRPP_Rui class");
                         } catch (Exception e) {
                             e.printStackTrace();
                         }

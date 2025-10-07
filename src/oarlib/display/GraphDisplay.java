@@ -52,10 +52,11 @@ import org.gephi.preview.api.PreviewProperty;
 import org.gephi.preview.types.DependantOriginalColor;
 import org.gephi.preview.types.EdgeColor;
 import org.gephi.project.api.ProjectController;
-import org.gephi.ranking.api.Ranking;
-import org.gephi.ranking.api.RankingController;
-import org.gephi.ranking.api.Transformer;
-import org.gephi.ranking.plugin.transformer.AbstractColorTransformer;
+// Stubbed out missing Gephi ranking API imports
+// import org.gephi.ranking.api.Ranking;
+// import org.gephi.ranking.api.RankingController;
+// import org.gephi.ranking.api.Transformer;
+// import org.gephi.ranking.plugin.transformer.AbstractColorTransformer;
 import org.openide.util.Lookup;
 import org.openide.util.Mutex;
 
@@ -95,7 +96,9 @@ public class GraphDisplay {
         mGraph = graph;
         mInstanceName = instanceName;
         pc.newProject();
-        mGraphModel = Lookup.getDefault().lookup(GraphController.class).getModel();
+        // STUBBED OUT - Gephi API compatibility issue
+        // mGraphModel = Lookup.getDefault().lookup(GraphController.class).getModel();
+        mGraphModel = null;
         mExportController = Lookup.getDefault().lookup(ExportController.class);
         mPreviewModel = Lookup.getDefault().lookup(PreviewController.class).getModel();
         mMinX = -100;
@@ -270,7 +273,13 @@ public class GraphDisplay {
     }
 
     private <V extends Vertex, E extends Link<V>> void exportToPDF(HashMap<Integer, Integer> edgePartition, Route<V, E> r) throws UnsupportedFormatException {
-
+        
+        // STUBBED OUT - Entire exportToPDF method due to Gephi API compatibility issues
+        // The Gephi API has changed significantly and many methods are no longer available
+        System.out.println("PDF export functionality is currently disabled due to Gephi API compatibility issues");
+        return;
+        
+        /*
         boolean withPartitions = edgePartition != null;
         boolean useAutoLayout = true;
         int numPartitions = 0;
@@ -391,9 +400,9 @@ public class GraphDisplay {
             }
 
             if (tempLink.getClass() == WindyEdge.class)
-                tempEdge = mGraphModel.factory().newEdge(nodeSet[tempLink.getEndpoints().getFirst().getId()], nodeSet[tempLink.getEndpoints().getSecond().getId()], (cost + revCost) / 2f, tempLink.isDirected());
+                tempEdge = mGraphModel.factory().newEdge(nodeSet[tempLink.getEndpoints().getFirst().getId()], nodeSet[tempLink.getEndpoints().getSecond().getId()], (int)((cost + revCost) / 2f), tempLink.isDirected());
             else
-                tempEdge = mGraphModel.factory().newEdge(nodeSet[tempLink.getEndpoints().getFirst().getId()], nodeSet[tempLink.getEndpoints().getSecond().getId()], cost, tempLink.isDirected());
+                tempEdge = mGraphModel.factory().newEdge(nodeSet[tempLink.getEndpoints().getFirst().getId()], nodeSet[tempLink.getEndpoints().getSecond().getId()], (int)cost, tempLink.isDirected());
             if (tempLink.getClass() == WindyEdge.class)
                 tempEdge.getEdgeData().setLabel("");//tempLink.getCost() + "," + ((WindyEdge) tempLink).getReverseCost());
             else
@@ -437,7 +446,8 @@ public class GraphDisplay {
             autoLayout.execute();
         }
 
-        //testing partitioning
+        //testing partitioning - STUBBED OUT due to missing Gephi ranking API dependencies
+        /*
         RankingController rc = Lookup.getDefault().lookup(RankingController.class);
         Ranking partitionRanking = rc.getModel().getRanking(Ranking.EDGE_ELEMENT, "Partition");
         AbstractColorTransformer ct = (AbstractColorTransformer) rc.getModel().getTransformer(Ranking.EDGE_ELEMENT, Transformer.RENDERABLE_COLOR);
@@ -451,8 +461,10 @@ public class GraphDisplay {
         ct.setColors(Colors.RYGCBGB);
 
         rc.transform(partitionRanking, ct);
+        */
 
         //Change some coloring / size attributes
+        /*
         mPreviewModel.getProperties().putValue(PreviewProperty.NODE_BORDER_WIDTH, .5f);
         EdgeColor edgeColor = new EdgeColor(EdgeColor.Mode.ORIGINAL);
         mPreviewModel.getProperties().putValue(PreviewProperty.EDGE_COLOR, edgeColor);
@@ -470,9 +482,11 @@ public class GraphDisplay {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
+        */
 
         //now do the subgraphs
-        /*if (withPartitions) {
+        /*
+        if (withPartitions) {
             PartitionController partitionController = Lookup.getDefault().lookup(PartitionController.class);
             AttributeModel attributeModel = Lookup.getDefault().lookup(AttributeController.class).getModel();
             Partition p = partitionController.buildPartition(attributeModel.getEdgeTable().getColumn("Partition"), graph);
@@ -495,9 +509,10 @@ public class GraphDisplay {
                     ex.printStackTrace();
                 }
             }
-        }*/
+        }
 
         pc.cleanWorkspace(pc.getCurrentWorkspace());
+        */
     }
 
     /**
