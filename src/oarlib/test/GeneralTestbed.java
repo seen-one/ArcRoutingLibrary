@@ -237,18 +237,15 @@ public class GeneralTestbed {
                                 wg2 = (WindyGraph) pr7.readGraph(args[1]);
                             } catch (FormatMismatchException fme) {
                                 System.out.println("Could not read file in Corberan format; attempting to read in OARLib format.");
-                                pr7 = new ProblemReader(ProblemFormat.Name.Zhang_Matrix_WRPP);
+                                pr7 = new ProblemReader(ProblemFormat.Name.OARLib);
                                 wg2 = (WindyGraph) pr7.readGraph(args[1]);
                             }
 
                             //solve
                             WindyRPP wrpp = new WindyRPP(wg2, "Instance");
-                            // STUBBED OUT - Missing WRPP_Rui class
-                            // WRPP_Rui wrppSolver = new WRPP_Rui(wrpp);
-                            // wrppSolver.setFilePrefix(args[2]);
-                            // wrppSolver.trySolve();
-                            // System.out.println(wrppSolver.printCurrentSol());
-                            System.out.println("WRPP solver functionality is currently disabled due to missing WRPP_Rui class");
+                            WRPPSolver_Benavent_H1 wrppSolver = new WRPPSolver_Benavent_H1(wrpp);
+                            wrppSolver.trySolve();
+                            System.out.println(wrppSolver.printCurrentSol());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
