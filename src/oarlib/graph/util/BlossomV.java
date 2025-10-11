@@ -23,14 +23,19 @@
  */
 package oarlib.graph.util;
 
-import java.util.*;
+import org.jgrapht.Graph;
+import org.jgrapht.alg.interfaces.MatchingAlgorithm;
+import org.jgrapht.alg.matching.blossom.v5.KolmogorovWeightedPerfectMatching;
+import org.jgrapht.graph.DefaultWeightedEdge;
+import org.jgrapht.graph.SimpleWeightedGraph;
+
+import java.util.Set;
 
 public class BlossomV {
 
     /**
-     * Greedy minimum-cost perfect matching algorithm to replace BlossomV.
-     * This is a simple greedy approach that may not find the optimal solution
-     * but should work reasonably well for most cases.
+     * Minimum-cost perfect matching algorithm using JGraphT's Kolmogorov Blossom V implementation.
+     * This provides an optimal solution for the minimum-cost perfect matching problem.
      *
      * @param n       - num nodes
      * @param m       - num edges
@@ -39,76 +44,48 @@ public class BlossomV {
      * @return - matching array where result[i] is the vertex matched to vertex i
      */
     public static int[] blossomV(int n, int m, int[] edges, int[] weights) {
-        // Create a greedy matching using a simple approach
-        int[] matching = new int[n];
-        boolean[] matched = new boolean[n];
+        // Create a weighted graph using JGraphT
+        Graph<Integer, DefaultWeightedEdge> graph = new SimpleWeightedGraph<>(DefaultWeightedEdge.class);
         
-        // Initialize matching array
+        // Add all vertices (0 to n-1)
         for (int i = 0; i < n; i++) {
-            matching[i] = -1; // -1 means unmatched
+            graph.addVertex(i);
         }
         
-        // Create a list of edges with their weights for sorting
-        List<EdgeInfo> edgeList = new ArrayList<>();
+        // Add all weighted edges
         for (int i = 0; i < m; i++) {
-            edgeList.add(new EdgeInfo(edges[2*i], edges[2*i+1], weights[i]));
-        }
-        
-        // Sort edges by weight (ascending order for minimum cost)
-        Collections.sort(edgeList, new Comparator<EdgeInfo>() {
-            @Override
-            public int compare(EdgeInfo e1, EdgeInfo e2) {
-                return Integer.compare(e1.weight, e2.weight);
-            }
-        });
-        
-        // Greedily select edges for matching
-        for (EdgeInfo edge : edgeList) {
-            int u = edge.u;
-            int v = edge.v;
+            int u = edges[2 * i];
+            int v = edges[2 * i + 1];
+            double weight = weights[i];
             
-            // Only add this edge if both vertices are unmatched
-            if (!matched[u] && !matched[v]) {
-                matching[u] = v;
-                matching[v] = u;
-                matched[u] = true;
-                matched[v] = true;
+            DefaultWeightedEdge edge = graph.addEdge(u, v);
+            if (edge != null) {
+                graph.setEdgeWeight(edge, weight);
             }
         }
         
-        // Verify that we have a perfect matching
+        // Run Kolmogorov's Blossom V algorithm
+        KolmogorovWeightedPerfectMatching<Integer, DefaultWeightedEdge> matcher = 
+            new KolmogorovWeightedPerfectMatching<>(graph);
+        
+        MatchingAlgorithm.Matching<Integer, DefaultWeightedEdge> matching = matcher.getMatching();
+        
+        // Convert the matching result to the expected format
+        int[] result = new int[n];
         for (int i = 0; i < n; i++) {
-            if (!matched[i]) {
-                // If we don't have a perfect matching, this is an error condition
-                // In practice, this shouldn't happen if the input is valid
-                System.err.println("Warning: Greedy matching failed to find perfect matching for vertex " + i);
-                // Try to find any unmatched vertex to pair with
-                for (int j = i + 1; j < n; j++) {
-                    if (!matched[j]) {
-                        matching[i] = j;
-                        matching[j] = i;
-                        matched[i] = true;
-                        matched[j] = true;
-                        break;
-                    }
-                }
-            }
+            result[i] = -1; // Initialize as unmatched
         }
         
-        return matching;
-    }
-    
-    /**
-     * Helper class to store edge information for sorting
-     */
-    private static class EdgeInfo {
-        int u, v, weight;
-        
-        EdgeInfo(int u, int v, int weight) {
-            this.u = u;
-            this.v = v;
-            this.weight = weight;
+        // Extract matched pairs from JGraphT result
+        Set<DefaultWeightedEdge> matchedEdges = matching.getEdges();
+        for (DefaultWeightedEdge edge : matchedEdges) {
+            int u = graph.getEdgeSource(edge);
+            int v = graph.getEdgeTarget(edge);
+            result[u] = v;
+            result[v] = u;
         }
+        
+        return result;
     }
 
 }

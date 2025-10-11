@@ -99,6 +99,13 @@
             <artifactId>xml-apis</artifactId>
             <version>1.4.01</version>
         </dependency>
+
+        <!-- JGraphT for graph algorithms -->
+        <dependency>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-core</artifactId>
+            <version>1.5.2</version>
+        </dependency>
     </dependencies>
 
     <build>
