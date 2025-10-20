@@ -169,6 +169,14 @@ public class GeneralTestbed {
                                 mg2 = (MixedGraph) pr4.readGraph(args[1]);
                             }
 
+                            //print degrees
+                            System.out.println("Vertex degrees:");
+                            java.util.List<oarlib.vertex.impl.MixedVertex> vertices = new java.util.ArrayList<>(mg2.getVertices());
+                            java.util.Collections.sort(vertices, (v1, v2) -> Integer.compare(v1.getId(), v2.getId()));
+                            for(oarlib.vertex.impl.MixedVertex v : vertices) {
+                                System.out.println("Vertex " + v.getId() + ": degree=" + v.getDegree() + ", inDegree=" + v.getInDegree() + ", outDegree=" + v.getOutDegree());
+                            }
+
                             //solve
                             MixedCPP mcpp2 = new MixedCPP(mg2, "Instance");
                             MCPPSolver_Yaoyuenyong mcppSolver2 = new MCPPSolver_Yaoyuenyong(mcpp2);
