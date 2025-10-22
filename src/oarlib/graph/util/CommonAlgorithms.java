@@ -134,8 +134,8 @@ public class CommonAlgorithms {
         simpleCycle.add(start);
         //initialize current position variables
         Map<? extends Vertex, ? extends List<? extends Link<? extends Vertex>>> currNeighbors = start.getNeighbors();
-        Vertex currVertex = start;
-        Vertex prevVertex;
+    Vertex currVertex = start;
+    Vertex prevVertex = null;
         Link<? extends Vertex> currEdge;
         Iterator<Vertex> vertexIter;
         boolean nextStart = true;
@@ -145,7 +145,24 @@ public class CommonAlgorithms {
         while (nextStart) {
             //greedily go until we've come back to start
             do {
-                currEdge = currNeighbors.values().iterator().next().get(0); //grab anybody
+                // Prefer an edge that does not immediately return to the previous vertex
+                currEdge = null;
+                for (Map.Entry<? extends Vertex, ? extends List<? extends Link<? extends Vertex>>> entry : currNeighbors.entrySet()) {
+                    Vertex neigh = entry.getKey();
+                    List<? extends Link<? extends Vertex>> links = entry.getValue();
+                    if (links == null || links.size() == 0) continue;
+                    // if we have a previous vertex, prefer a neighbor that is not the previous vertex
+                    if (prevVertex != null && neigh.getId() == prevVertex.getId()) {
+                        // keep as fallback if nothing else found
+                        if (currEdge == null)
+                            currEdge = links.get(0);
+                    } else {
+                        currEdge = links.get(0);
+                        break;
+                    }
+                }
+                if (currEdge == null) // fallback to original behaviour (shouldn't happen unless map empty)
+                    currEdge = currNeighbors.values().iterator().next().get(0);
                 if (useMatchIds)
                     edgeCycle.add(indexedOrigEdges.get(currEdge.getMatchId()).getMatchId());
                 else
