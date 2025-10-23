@@ -22,6 +22,7 @@
         <maven.source.plugin.version>3.2.1</maven.source.plugin.version>
         <maven.javadoc.plugin.version>3.5.0</maven.javadoc.plugin.version>
         <maven.shade.plugin.version>3.4.1</maven.shade.plugin.version>
+        <teavm.version>0.12.3</teavm.version>
     </properties>
 
     <licenses>
@@ -105,6 +106,14 @@
             <groupId>org.jgrapht</groupId>
             <artifactId>jgrapht-core</artifactId>
             <version>1.5.2</version>
+        </dependency>
+
+        <!-- TeaVM classlib (required at compile time) -->
+        <dependency>
+            <groupId>org.teavm</groupId>
+            <artifactId>teavm-classlib</artifactId>
+            <version>${teavm.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -224,4 +233,68 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>teavm</id>
+            <build>
+                <plugins>
+                    <!-- Compile only TeaVM-safe sources into a separate classes dir -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>${maven.compiler.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>compile-teavm-only</id>
+                                <phase>process-classes</phase>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- include the full library sources for TeaVM build; we'll iterate on unsupported APIs if errors occur -->
+                                    <includes>
+                                        <include>oarlib/**/*.java</include>
+                                    </includes>
+                                    <outputDirectory>${project.build.directory}/teavm-classes</outputDirectory>
+                                    <failOnError>true</failOnError>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.teavm</groupId>
+                        <artifactId>teavm-maven-plugin</artifactId>
+                        <version>${teavm.version}</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.teavm</groupId>
+                                <artifactId>teavm-classlib</artifactId>
+                                <version>${teavm.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <id>teavm-compile</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>oarlib.teavm.TeaVMEntry</mainClass>
+                                    <classFiles>${project.build.directory}/teavm-classes</classFiles>
+                                    <targetDirectory>${project.build.directory}/teavm</targetDirectory>
+                                    <targetFileName>teavm.js</targetFileName>
+                                    <minifying>false</minifying>
+                                    <mainPageIncluded>true</mainPageIncluded>
+                                    <debugInformationGenerated>true</debugInformationGenerated>
+                                    <sourceMapsGenerated>true</sourceMapsGenerated>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
