@@ -35,11 +35,21 @@ import java.util.*;
 /**
  * TeaVM-compatible OARLIB file parser.
  * Parses OARLIB format files provided as strings instead of file I/O.
- * Supports Windy graph format.
+ * Supports Windy, Mixed, Directed, and Undirected graph formats.
  */
 public class OARLibParser {
 
     private static final SimpleLogger LOGGER = SimpleLogger.getLogger(OARLibParser.class);
+
+    private static final int DEFAULT_FALLBACK_VERTEX_COUNT = 150;
+
+    private enum LinkFormatType {
+        WINDY,
+        MIXED,
+        DIRECTED,
+        UNDIRECTED,
+        UNKNOWN
+    }
 
     /**
      * Parse OARLIB format string and create a WindyGraph
@@ -50,404 +60,360 @@ public class OARLibParser {
      */
     public static WindyGraph parseWindyGraph(String content) throws Exception {
         LOGGER.info("Parsing OARLIB content...");
-        
-        String[] lines = content.split("\n");
-        Map<String, String> metadata = new HashMap<>();
+
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("OARLIB content is empty.");
+        }
+
+        String normalizedContent = sanitizeContent(content);
+        String[] lines = normalizedContent.split("\n");
         List<LinkData> links = new ArrayList<>();
         List<VertexData> vertices = new ArrayList<>();
-        
+
         boolean inLinksSection = false;
         boolean inVerticesSection = false;
         int numVertices = 0;
-        int numEdges = 0;
         int depotId = 1;
-        
-        // Parse metadata and data sections
-        for (String line : lines) {
-            line = line.trim();
-            
-            // Skip empty lines and comments
+        LinkFormatType linkFormat = LinkFormatType.WINDY;
+
+        for (String rawLine : lines) {
+            String line = rawLine.trim();
+
             if (line.isEmpty() || line.startsWith("%")) {
                 continue;
             }
-            
-            // Parse metadata headers
-            if (line.contains("Graph Type:")) {
-                metadata.put("graphType", extractValue(line));
-                continue;
-            }
+
             if (line.contains("Depot ID")) {
-                try {
-                    depotId = Integer.parseInt(extractValue(line));
-                } catch (Exception e) {
-                    depotId = 1;
+                Integer depot = parseIntSafe(extractValue(line));
+                if (depot != null) {
+                    depotId = depot;
                 }
                 continue;
             }
+
             if (line.contains("N:")) {
-                try {
-                    numVertices = Integer.parseInt(extractValue(line));
-                } catch (Exception e) {
-                    // ignore
+                Integer declaredVertices = parseIntSafe(extractValue(line));
+                if (declaredVertices != null) {
+                    numVertices = declaredVertices;
                 }
                 continue;
             }
-            if (line.contains("M:")) {
-                try {
-                    numEdges = Integer.parseInt(extractValue(line));
-                } catch (Exception e) {
-                    // ignore
-                }
-                continue;
-            }
-            
-            // Section markers
-            if (line.contains("LINKS") && !line.contains("END")) {
+
+            String upper = line.toUpperCase(Locale.ROOT);
+
+            if (upper.startsWith("LINKS") && !upper.contains("END")) {
                 inLinksSection = true;
                 inVerticesSection = false;
+                linkFormat = LinkFormatType.WINDY;
                 continue;
             }
-            if (line.contains("VERTICES") && !line.contains("END")) {
+
+            if (upper.contains("END LINKS")) {
                 inLinksSection = false;
+                continue;
+            }
+
+            if (upper.startsWith("VERTICES") && !upper.contains("END")) {
                 inVerticesSection = true;
+                inLinksSection = false;
                 continue;
             }
-            if (line.contains("END LINKS") || line.contains("END VERTICES")) {
-                inLinksSection = false;
+
+            if (upper.contains("END VERTICES")) {
                 inVerticesSection = false;
                 continue;
             }
-            
-            // Parse link data
-            if (inLinksSection && !line.contains("Format:")) {
-                try {
-                    LinkData linkData = parseLinkLine(line);
-                    if (linkData != null) {
-                        links.add(linkData);
+
+            if (inLinksSection) {
+                if (upper.startsWith("LINE FORMAT")) {
+                    linkFormat = resolveLinkFormat(extractValue(line), LinkFormatType.WINDY);
+                    continue;
+                }
+
+                LinkData linkData = parseLinkLine(line, linkFormat);
+                if (linkData != null) {
+                    links.add(linkData);
+                } else {
+                    LOGGER.warn("Skipping malformed link line: " + line);
+                }
+                continue;
+            }
+
+            if (inVerticesSection) {
+                if (upper.startsWith("LINE FORMAT")) {
+                    continue;
+                }
+
+                VertexData vertexData = parseVertexLine(line);
+                if (vertexData != null) {
+                    if (vertexData.id <= 0) {
+                        vertexData.id = vertices.size() + 1;
                     }
-                } catch (Exception e) {
-                    LOGGER.warn("Failed to parse link: " + line);
+                    vertices.add(vertexData);
+                } else {
+                    LOGGER.warn("Skipping malformed vertex line: " + line);
                 }
             }
-            
-            // Parse vertex data
-            if (inVerticesSection && !line.contains("Format:")) {
-                try {
-                    VertexData vertexData = parseVertexLine(line);
-                    if (vertexData != null) {
-                        vertices.add(vertexData);
-                    }
-                } catch (Exception e) {
-                    LOGGER.warn("Failed to parse vertex: " + line);
-                }
-            }
         }
-        
-        // Create graph if we have valid data
-        if (numVertices <= 0 && !vertices.isEmpty()) {
-            numVertices = vertices.size();
-        }
-        if (numVertices <= 0) {
-            numVertices = 150; // Default
-        }
-        
+
+        numVertices = inferVertexCount(numVertices, links, vertices);
+
         if (links.isEmpty()) {
             throw new IllegalArgumentException("No valid LINKS section found in OARLIB content.");
         }
 
         if (numVertices <= 0) {
-            throw new IllegalArgumentException("Unable to determine vertex count from OARLIB content.");
+            numVertices = DEFAULT_FALLBACK_VERTEX_COUNT;
         }
 
         LOGGER.info("Creating WindyGraph with " + numVertices + " vertices and " + links.size() + " edges");
 
         WindyGraph graph = new WindyGraph(numVertices);
-        
-        // Add edges
+
         for (LinkData link : links) {
+            int from = link.v1;
+            int to = link.v2;
+            int cost = link.cost;
+            int reverseCost = (link.reverseCost != null) ? link.reverseCost : cost;
+            boolean required = link.isRequired != null ? link.isRequired : true;
+
             try {
-                graph.addEdge(link.v1, link.v2, link.cost, link.reverseCost, link.isRequired);
+                graph.addEdge(from, to, cost, reverseCost, required);
             } catch (Exception e) {
-                LOGGER.warn("Failed to add edge: " + link);
+                LOGGER.warn("Failed to add edge: " + link + "; reason: " + e.getMessage());
             }
         }
-        
-        // Add vertex coordinates if available
+
         for (VertexData vertex : vertices) {
-            try {
-                if (vertex.id > 0 && vertex.id <= numVertices) {
+            if (vertex.id > 0 && vertex.id <= graph.getVertices().size()) {
+                try {
                     graph.getVertex(vertex.id).setCoordinates(vertex.x, vertex.y);
+                } catch (Exception e) {
+                    LOGGER.warn("Failed to set vertex coordinates: " + vertex + "; reason: " + e.getMessage());
                 }
-            } catch (Exception e) {
-                LOGGER.warn("Failed to set vertex coordinates: " + vertex);
             }
         }
-        
-        // Set depot
+
         try {
             graph.setDepotId(depotId);
         } catch (Exception e) {
             graph.setDepotId(1);
         }
-        
-        LOGGER.info("Graph parsing complete. Vertices: " + graph.getVertices().size() + 
-                    ", Edges: " + graph.getEdges().size());
-        
+
+        LOGGER.info("Graph parsing complete. Vertices: " + graph.getVertices().size() +
+                ", Edges: " + graph.getEdges().size());
+
         return graph;
     }
-    
-    /**
-     * Parse a link line from OARLIB format
-     * Format: V1,V2,COST,REVERSE_COST,isRequired
-     */
-    private static LinkData parseLinkLine(String line) {
-        try {
-            String[] parts = line.split(",");
-            if (parts.length >= 5) {
-                LinkData data = new LinkData();
-                data.v1 = Integer.parseInt(parts[0].trim());
-                data.v2 = Integer.parseInt(parts[1].trim());
-                data.cost = Integer.parseInt(parts[2].trim());
-                data.reverseCost = Integer.parseInt(parts[3].trim());
-                data.isRequired = Boolean.parseBoolean(parts[4].trim());
-                return data;
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return null;
-    }
-    
-    /**
-     * Parse a vertex line from OARLIB format
-     * Format: x,y
-     */
-    private static VertexData parseVertexLine(String line) {
-        try {
-            String[] parts = line.split(",");
-            if (parts.length >= 2) {
-                VertexData data = new VertexData();
-                data.x = Double.parseDouble(parts[0].trim());
-                data.y = Double.parseDouble(parts[1].trim());
-                return data;
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return null;
-    }
-    
-    /**
-     * Extract value after colon in metadata lines
-     */
-    private static String extractValue(String line) {
-        int idx = line.indexOf(":");
-        if (idx >= 0 && idx < line.length() - 1) {
-            return line.substring(idx + 1).trim();
-        }
-        return "";
-    }
-    
-    /**
-     * Inner class to hold link data
-     */
-    static class LinkData {
-        int v1, v2, cost, reverseCost;
-        boolean isRequired;
-        
-        @Override
-        public String toString() {
-            return "LinkData{" +
-                    "v1=" + v1 +
-                    ", v2=" + v2 +
-                    ", cost=" + cost +
-                    ", reverseCost=" + reverseCost +
-                    ", isRequired=" + isRequired +
-                    '}';
-        }
-    }
-    
+
+
     /**
      * Parse DirectedGraph from OARLIB content string
      */
     public static DirectedGraph parseDirectedGraph(String content) throws Exception {
         LOGGER.info("Parsing OARLIB content for DirectedGraph...");
-        
-        String[] lines = content.split("\n");
+
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("OARLIB content is empty.");
+        }
+
+        String normalizedContent = sanitizeContent(content);
+        String[] lines = normalizedContent.split("\n");
         List<LinkData> links = new ArrayList<>();
         int numVertices = 0;
         int depotId = 1;
-        
         boolean inLinksSection = false;
-        
-        for (String line : lines) {
-            line = line.trim();
-            
+        LinkFormatType linkFormat = LinkFormatType.DIRECTED;
+
+        for (String rawLine : lines) {
+            String line = rawLine.trim();
+
             if (line.isEmpty() || line.startsWith("%")) {
                 continue;
             }
-            
+
             if (line.contains("N:")) {
-                try {
-                    numVertices = Integer.parseInt(extractValue(line));
-                } catch (Exception e) {
-                    // ignore
+                Integer declaredVertices = parseIntSafe(extractValue(line));
+                if (declaredVertices != null) {
+                    numVertices = declaredVertices;
                 }
                 continue;
             }
-            
+
             if (line.contains("Depot ID")) {
-                try {
-                    depotId = Integer.parseInt(extractValue(line));
-                } catch (Exception e) {
-                    depotId = 1;
+                Integer depot = parseIntSafe(extractValue(line));
+                if (depot != null) {
+                    depotId = depot;
                 }
                 continue;
             }
-            
-            if (line.contains("LINKS") && !line.contains("END")) {
+
+            String upper = line.toUpperCase(Locale.ROOT);
+
+            if (upper.startsWith("LINKS") && !upper.contains("END")) {
                 inLinksSection = true;
+                linkFormat = LinkFormatType.DIRECTED;
                 continue;
             }
-            
-            if (line.contains("END LINKS") || line.contains("VERTICES")) {
+
+            if (upper.contains("END LINKS") || upper.contains("VERTICES")) {
                 inLinksSection = false;
-                continue;
+                if (upper.contains("VERTICES")) {
+                    continue;
+                }
             }
-            
+
             if (inLinksSection) {
-                try {
-                    LinkData linkData = parseLinkLine(line);
-                    if (linkData != null) {
-                        links.add(linkData);
-                    }
-                } catch (Exception e) {
-                    LOGGER.warn("Failed to parse link: " + line);
+                if (upper.startsWith("LINE FORMAT")) {
+                    linkFormat = resolveLinkFormat(extractValue(line), LinkFormatType.DIRECTED);
+                    continue;
+                }
+
+                LinkData linkData = parseLinkLine(line, linkFormat);
+                if (linkData != null) {
+                    links.add(linkData);
+                } else {
+                    LOGGER.warn("Skipping malformed link line: " + line);
                 }
             }
         }
-        
+
+        numVertices = inferVertexCount(numVertices, links, null);
+
         if (links.isEmpty()) {
             throw new IllegalArgumentException("No valid LINKS section found in OARLIB content.");
         }
-        
+
         if (numVertices <= 0) {
             throw new IllegalArgumentException("Unable to determine vertex count from OARLIB content.");
         }
-        
+
         LOGGER.info("Creating DirectedGraph with " + numVertices + " vertices and " + links.size() + " edges");
-        
+
         DirectedGraph graph = new DirectedGraph(numVertices);
-        
+
         for (LinkData link : links) {
+            boolean required = link.isRequired != null ? link.isRequired : true;
             try {
-                graph.addEdge(link.v1, link.v2, "edge", link.cost, true);
+                graph.addEdge(link.v1, link.v2, "edge", link.cost, required);
             } catch (Exception e) {
-                LOGGER.warn("Failed to add edge: " + link);
+                LOGGER.warn("Failed to add edge: " + link + "; reason: " + e.getMessage());
             }
         }
-        
+
         try {
             graph.setDepotId(depotId);
         } catch (Exception e) {
             graph.setDepotId(1);
         }
-        
-        LOGGER.info("Graph parsing complete. Vertices: " + graph.getVertices().size() + 
-                    ", Edges: " + graph.getEdges().size());
-        
+
+        LOGGER.info("Graph parsing complete. Vertices: " + graph.getVertices().size() +
+                ", Edges: " + graph.getEdges().size());
+
         return graph;
     }
-
+    
     /**
      * Parse UndirectedGraph from OARLIB content string
      */
     public static UndirectedGraph parseUndirectedGraph(String content) throws Exception {
         LOGGER.info("Parsing OARLIB content for UndirectedGraph...");
-        
-        String[] lines = content.split("\n");
+
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("OARLIB content is empty.");
+        }
+
+        String normalizedContent = sanitizeContent(content);
+        String[] lines = normalizedContent.split("\n");
         List<LinkData> links = new ArrayList<>();
         int numVertices = 0;
         int depotId = 1;
-        
         boolean inLinksSection = false;
-        
-        for (String line : lines) {
-            line = line.trim();
-            
+        LinkFormatType linkFormat = LinkFormatType.UNDIRECTED;
+
+        for (String rawLine : lines) {
+            String line = rawLine.trim();
+
             if (line.isEmpty() || line.startsWith("%")) {
                 continue;
             }
-            
+
             if (line.contains("N:")) {
-                try {
-                    numVertices = Integer.parseInt(extractValue(line));
-                } catch (Exception e) {
-                    // ignore
+                Integer declaredVertices = parseIntSafe(extractValue(line));
+                if (declaredVertices != null) {
+                    numVertices = declaredVertices;
                 }
                 continue;
             }
-            
+
             if (line.contains("Depot ID")) {
-                try {
-                    depotId = Integer.parseInt(extractValue(line));
-                } catch (Exception e) {
-                    depotId = 1;
+                Integer depot = parseIntSafe(extractValue(line));
+                if (depot != null) {
+                    depotId = depot;
                 }
                 continue;
             }
-            
-            if (line.contains("LINKS") && !line.contains("END")) {
+
+            String upper = line.toUpperCase(Locale.ROOT);
+
+            if (upper.startsWith("LINKS") && !upper.contains("END")) {
                 inLinksSection = true;
+                linkFormat = LinkFormatType.UNDIRECTED;
                 continue;
             }
-            
-            if (line.contains("END LINKS") || line.contains("VERTICES")) {
+
+            if (upper.contains("END LINKS") || upper.contains("VERTICES")) {
                 inLinksSection = false;
                 continue;
             }
-            
+
             if (inLinksSection) {
-                try {
-                    LinkData linkData = parseLinkLine(line);
-                    if (linkData != null) {
-                        links.add(linkData);
-                    }
-                } catch (Exception e) {
-                    LOGGER.warn("Failed to parse link: " + line);
+                if (upper.startsWith("LINE FORMAT")) {
+                    linkFormat = resolveLinkFormat(extractValue(line), LinkFormatType.UNDIRECTED);
+                    continue;
+                }
+
+                LinkData linkData = parseLinkLine(line, linkFormat);
+                if (linkData != null) {
+                    links.add(linkData);
+                } else {
+                    LOGGER.warn("Skipping malformed link line: " + line);
                 }
             }
         }
-        
+
+        numVertices = inferVertexCount(numVertices, links, null);
+
         if (links.isEmpty()) {
             throw new IllegalArgumentException("No valid LINKS section found in OARLIB content.");
         }
-        
+
         if (numVertices <= 0) {
             throw new IllegalArgumentException("Unable to determine vertex count from OARLIB content.");
         }
-        
+
         LOGGER.info("Creating UndirectedGraph with " + numVertices + " vertices and " + links.size() + " edges");
-        
+
         UndirectedGraph graph = new UndirectedGraph(numVertices);
-        
+
         for (LinkData link : links) {
+            boolean required = link.isRequired != null ? link.isRequired : true;
             try {
-                graph.addEdge(link.v1, link.v2, "edge", link.cost, true);
+                graph.addEdge(link.v1, link.v2, "edge", link.cost, required);
             } catch (Exception e) {
-                LOGGER.warn("Failed to add edge: " + link);
+                LOGGER.warn("Failed to add edge: " + link + "; reason: " + e.getMessage());
             }
         }
-        
+
         try {
             graph.setDepotId(depotId);
         } catch (Exception e) {
             graph.setDepotId(1);
         }
-        
-        LOGGER.info("Graph parsing complete. Vertices: " + graph.getVertices().size() + 
-                    ", Edges: " + graph.getEdges().size());
-        
+
+        LOGGER.info("Graph parsing complete. Vertices: " + graph.getVertices().size() +
+                ", Edges: " + graph.getEdges().size());
+
         return graph;
     }
 
@@ -456,91 +422,103 @@ public class OARLibParser {
      */
     public static MixedGraph parseMixedGraph(String content) throws Exception {
         LOGGER.info("Parsing OARLIB content for MixedGraph...");
-        
-        String[] lines = content.split("\n");
+
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("OARLIB content is empty.");
+        }
+
+        String normalizedContent = sanitizeContent(content);
+        String[] lines = normalizedContent.split("\n");
         List<LinkData> links = new ArrayList<>();
         int numVertices = 0;
         int depotId = 1;
-        
         boolean inLinksSection = false;
-        
-        for (String line : lines) {
-            line = line.trim();
-            
+        LinkFormatType linkFormat = LinkFormatType.MIXED;
+
+        for (String rawLine : lines) {
+            String line = rawLine.trim();
+
             if (line.isEmpty() || line.startsWith("%")) {
                 continue;
             }
-            
+
             if (line.contains("N:")) {
-                try {
-                    numVertices = Integer.parseInt(extractValue(line));
-                } catch (Exception e) {
-                    // ignore
+                Integer declaredVertices = parseIntSafe(extractValue(line));
+                if (declaredVertices != null) {
+                    numVertices = declaredVertices;
                 }
                 continue;
             }
-            
+
             if (line.contains("Depot ID")) {
-                try {
-                    depotId = Integer.parseInt(extractValue(line));
-                } catch (Exception e) {
-                    depotId = 1;
+                Integer depot = parseIntSafe(extractValue(line));
+                if (depot != null) {
+                    depotId = depot;
                 }
                 continue;
             }
-            
-            if (line.contains("LINKS") && !line.contains("END")) {
+
+            String upper = line.toUpperCase(Locale.ROOT);
+
+            if (upper.startsWith("LINKS") && !upper.contains("END")) {
                 inLinksSection = true;
+                linkFormat = LinkFormatType.MIXED;
                 continue;
             }
-            
-            if (line.contains("END LINKS") || line.contains("VERTICES")) {
+
+            if (upper.contains("END LINKS") || upper.contains("VERTICES")) {
                 inLinksSection = false;
                 continue;
             }
-            
+
             if (inLinksSection) {
-                try {
-                    LinkData linkData = parseLinkLine(line);
-                    if (linkData != null) {
-                        links.add(linkData);
-                    }
-                } catch (Exception e) {
-                    LOGGER.warn("Failed to parse link: " + line);
+                if (upper.startsWith("LINE FORMAT")) {
+                    linkFormat = resolveLinkFormat(extractValue(line), LinkFormatType.MIXED);
+                    continue;
+                }
+
+                LinkData linkData = parseLinkLine(line, linkFormat);
+                if (linkData != null) {
+                    links.add(linkData);
+                } else {
+                    LOGGER.warn("Skipping malformed link line: " + line);
                 }
             }
         }
-        
+
+        numVertices = inferVertexCount(numVertices, links, null);
+
         if (links.isEmpty()) {
             throw new IllegalArgumentException("No valid LINKS section found in OARLIB content.");
         }
-        
+
         if (numVertices <= 0) {
             throw new IllegalArgumentException("Unable to determine vertex count from OARLIB content.");
         }
-        
+
         LOGGER.info("Creating MixedGraph with " + numVertices + " vertices and " + links.size() + " edges");
-        
+
         MixedGraph graph = new MixedGraph(numVertices);
-        
+
         for (LinkData link : links) {
+            boolean isDirected = link.isDirected != null ? link.isDirected : false;
+            boolean required = link.isRequired != null ? link.isRequired : true;
             try {
-                // For mixed graphs, treat all edges as undirected by default
-                graph.addEdge(link.v1, link.v2, "edge", link.cost, false);
+                graph.addEdge(link.v1, link.v2, link.cost, isDirected, required);
             } catch (Exception e) {
-                LOGGER.warn("Failed to add edge: " + link);
+                LOGGER.warn("Failed to add edge: " + link + "; reason: " + e.getMessage());
             }
         }
-        
+
         try {
             graph.setDepotId(depotId);
         } catch (Exception e) {
             graph.setDepotId(1);
         }
-        
-        LOGGER.info("Graph parsing complete. Vertices: " + graph.getVertices().size() + 
-                    ", Edges: " + graph.getEdges().size());
-        
+
+        LOGGER.info("Graph parsing complete. Vertices: " + graph.getVertices().size() +
+                ", Edges: " + graph.getEdges().size());
+
         return graph;
     }
 
@@ -559,5 +537,234 @@ public class OARLibParser {
                     ", y=" + y +
                     '}';
         }
+    }
+
+    /**
+     * Inner class to hold link data
+     */
+    static class LinkData {
+        Integer v1;
+        Integer v2;
+        Integer cost;
+        Integer reverseCost;
+        Boolean isDirected;
+        Boolean isRequired;
+
+        @Override
+        public String toString() {
+            return "LinkData{" +
+                    "v1=" + v1 +
+                    ", v2=" + v2 +
+                    ", cost=" + cost +
+                    ", reverseCost=" + reverseCost +
+                    ", isDirected=" + isDirected +
+                    ", isRequired=" + isRequired +
+                    '}';
+        }
+    }
+
+    private static String sanitizeContent(String content) {
+        String normalized = content;
+        if (normalized.startsWith("\uFEFF")) {
+            normalized = normalized.substring(1);
+        }
+        normalized = normalized.replace("\r\n", "\n").replace("\r", "\n");
+        return normalized;
+    }
+
+    private static LinkFormatType resolveLinkFormat(String formatSpec, LinkFormatType fallback) {
+        if (formatSpec == null) {
+            return fallback;
+        }
+
+        String normalized = formatSpec.toUpperCase(Locale.ROOT);
+
+        if (normalized.contains("ISDIRECTED")) {
+            return LinkFormatType.MIXED;
+        }
+
+        if (normalized.contains("REVERSE")) {
+            return LinkFormatType.WINDY;
+        }
+
+        if (normalized.contains("ISREQUIRED") || normalized.contains("REQUIRED")) {
+            if (fallback == LinkFormatType.DIRECTED) {
+                return LinkFormatType.DIRECTED;
+            }
+            if (fallback == LinkFormatType.UNDIRECTED) {
+                return LinkFormatType.UNDIRECTED;
+            }
+        }
+
+        return fallback;
+    }
+
+    private static LinkData parseLinkLine(String line, LinkFormatType formatType) {
+        String[] rawParts = line.split(",");
+        List<String> parts = new ArrayList<>();
+        for (String rawPart : rawParts) {
+            String trimmed = rawPart.trim();
+            if (!trimmed.isEmpty()) {
+                parts.add(trimmed);
+            }
+        }
+
+        if (parts.size() < 3) {
+            return null;
+        }
+
+        LinkData data = new LinkData();
+        data.v1 = parseIntSafe(parts.get(0));
+        data.v2 = parseIntSafe(parts.get(1));
+        data.cost = parseIntSafe(parts.get(2));
+
+        if (data.v1 == null || data.v2 == null || data.cost == null) {
+            return null;
+        }
+
+        switch (formatType) {
+            case MIXED:
+                if (parts.size() >= 4) {
+                    data.isDirected = parseBooleanToken(parts.get(3));
+                }
+                if (parts.size() >= 5) {
+                    data.isRequired = parseBooleanToken(parts.get(4));
+                }
+                break;
+            case DIRECTED:
+            case UNDIRECTED:
+                if (parts.size() >= 4) {
+                    data.isRequired = parseBooleanToken(parts.get(3));
+                }
+                break;
+            case WINDY:
+            case UNKNOWN:
+            default:
+                if (parts.size() >= 4) {
+                    data.reverseCost = parseIntSafe(parts.get(3));
+                }
+                if (parts.size() >= 5) {
+                    data.isRequired = parseBooleanToken(parts.get(4));
+                }
+                break;
+        }
+
+        return data;
+    }
+
+    private static VertexData parseVertexLine(String line) {
+        String[] rawParts = line.split(",");
+        if (rawParts.length < 2) {
+            return null;
+        }
+
+        VertexData data = new VertexData();
+        int coordinateIndex = 0;
+
+        if (rawParts.length >= 3) {
+            Integer maybeId = parseIntSafe(rawParts[0]);
+            if (maybeId != null) {
+                data.id = maybeId;
+                coordinateIndex = 1;
+            }
+        }
+
+        try {
+            data.x = Double.parseDouble(rawParts[coordinateIndex].trim());
+            data.y = Double.parseDouble(rawParts[coordinateIndex + 1].trim());
+        } catch (Exception e) {
+            return null;
+        }
+
+        return data;
+    }
+
+    private static Integer parseIntSafe(String token) {
+        if (token == null) {
+            return null;
+        }
+
+        String trimmed = token.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        try {
+            return Integer.parseInt(trimmed);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Boolean parseBooleanToken(String token) {
+        if (token == null) {
+            return null;
+        }
+
+        String trimmed = token.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        if (trimmed.equalsIgnoreCase("true") || trimmed.equalsIgnoreCase("t") ||
+                trimmed.equalsIgnoreCase("yes") || trimmed.equalsIgnoreCase("y")) {
+            return Boolean.TRUE;
+        }
+
+        if (trimmed.equalsIgnoreCase("false") || trimmed.equalsIgnoreCase("f") ||
+                trimmed.equalsIgnoreCase("no") || trimmed.equalsIgnoreCase("n")) {
+            return Boolean.FALSE;
+        }
+
+        if (trimmed.equals("1")) {
+            return Boolean.TRUE;
+        }
+
+        if (trimmed.equals("0")) {
+            return Boolean.FALSE;
+        }
+
+        try {
+            return Integer.parseInt(trimmed) != 0;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String extractValue(String line) {
+        int idx = line.indexOf(":");
+        if (idx >= 0 && idx < line.length() - 1) {
+            return line.substring(idx + 1).trim();
+        }
+        return "";
+    }
+
+    private static int inferVertexCount(int declaredCount, List<LinkData> links, List<VertexData> vertices) {
+        int maxId = 0;
+
+        if (links != null) {
+            for (LinkData link : links) {
+                if (link.v1 != null) {
+                    maxId = Math.max(maxId, link.v1);
+                }
+                if (link.v2 != null) {
+                    maxId = Math.max(maxId, link.v2);
+                }
+            }
+        }
+
+        if (vertices != null) {
+            for (VertexData vertex : vertices) {
+                if (vertex != null && vertex.id > 0) {
+                    maxId = Math.max(maxId, vertex.id);
+                }
+            }
+        }
+
+        if (declaredCount > 0 && declaredCount >= maxId) {
+            return declaredCount;
+        }
+
+        return maxId == 0 ? declaredCount : maxId;
     }
 }
