@@ -24,11 +24,11 @@
  */
 package oarlib.route.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import oarlib.graph.impl.ZigZagGraph;
 import oarlib.link.impl.ZigZagLink;
 import oarlib.vertex.impl.ZigZagVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 
@@ -37,7 +37,7 @@ import java.util.ArrayList;
  */
 public class ZigZagTour extends Tour<ZigZagVertex, ZigZagLink> {
 
-    private static final Logger LOGGER = Logger.getLogger(ZigZagTour.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(ZigZagTour.class);
 
     private ArrayList<Boolean> compactZZList;
     private ZigZagGraph mGraph;

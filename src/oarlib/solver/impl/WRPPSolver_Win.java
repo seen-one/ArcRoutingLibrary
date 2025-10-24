@@ -23,6 +23,7 @@
  */
 package oarlib.solver.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Graph;
 import oarlib.core.Problem;
@@ -43,13 +44,12 @@ import oarlib.route.impl.Tour;
 import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.UndirectedVertex;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.*;
 
 public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, WindyGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(WRPPSolver_Win.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(WRPPSolver_Win.class);
 
     public WRPPSolver_Win(Problem<WindyVertex, WindyEdge, WindyGraph> instance) throws IllegalArgumentException {
         super(instance);

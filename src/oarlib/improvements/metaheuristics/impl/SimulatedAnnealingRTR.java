@@ -23,6 +23,7 @@
  */
 package oarlib.improvements.metaheuristics.impl;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.Graph;
 import oarlib.core.Problem;
 import oarlib.core.Route;
@@ -35,7 +36,6 @@ import oarlib.link.impl.WindyEdge;
 import oarlib.problem.impl.MultiVehicleProblem;
 import oarlib.problem.impl.ProblemAttributes;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.Collection;
 
@@ -44,7 +44,7 @@ import java.util.Collection;
  */
 public class SimulatedAnnealingRTR extends ImprovementProcedure<WindyVertex, WindyEdge, WindyGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(BenaventIPFramework.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(BenaventIPFramework.class);
 
     public SimulatedAnnealingRTR(MultiVehicleProblem<WindyVertex, WindyEdge, WindyGraph> problem) {
         super(problem);

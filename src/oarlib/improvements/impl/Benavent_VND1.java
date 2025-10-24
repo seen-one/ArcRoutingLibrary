@@ -23,6 +23,7 @@
  */
 package oarlib.improvements.impl;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.Graph;
 import oarlib.core.Problem;
 import oarlib.core.Route;
@@ -32,7 +33,6 @@ import oarlib.improvements.IntraRouteImprovementProcedure;
 import oarlib.link.impl.WindyEdge;
 import oarlib.problem.impl.ProblemAttributes;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.Collection;
 
@@ -41,7 +41,7 @@ import java.util.Collection;
  */
 public class Benavent_VND1 extends IntraRouteImprovementProcedure<WindyVertex, WindyEdge, WindyGraph> {
 
-    private static Logger LOGGER = Logger.getLogger(Benavent_VND1.class);
+    private static SimpleLogger LOGGER = SimpleLogger.getLogger(Benavent_VND1.class);
 
     public Benavent_VND1(Problem<WindyVertex, WindyEdge, WindyGraph> problem) {
         super(problem);

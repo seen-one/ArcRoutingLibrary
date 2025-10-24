@@ -64,13 +64,6 @@
             <version>1.4.7</version>
         </dependency>
 
-        <!-- Log4j -->
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.17</version>
-        </dependency>
-
         <!-- Trove Collections - JetBrains IntelliJ fork -->
         <dependency>
             <groupId>org.jetbrains.intellij.deps</groupId>
@@ -252,10 +245,20 @@
                                     <goal>compile</goal>
                                 </goals>
                                 <configuration>
-                                    <!-- include the full library sources for TeaVM build; we'll iterate on unsupported APIs if errors occur -->
+                                    <!-- Include core library, exclude JVM-only code for TeaVM -->
                                     <includes>
                                         <include>oarlib/**/*.java</include>
                                     </includes>
+                                    <excludes>
+                                        <!-- Exclude test code that uses file I/O and native methods -->
+                                        <exclude>oarlib/test/**</exclude>
+                                        <!-- Exclude problem I/O (uses java.nio.file.Paths) -->
+                                        <exclude>oarlib/problem/impl/io/**</exclude>
+                                        <!-- Exclude display/visualization (not needed for core algorithms) -->
+                                        <exclude>oarlib/display/**</exclude>
+                                        <!-- Exclude web components -->
+                                        <exclude>oarlib/web/**</exclude>
+                                    </excludes>
                                     <outputDirectory>${project.build.directory}/teavm-classes</outputDirectory>
                                     <failOnError>true</failOnError>
                                 </configuration>
@@ -281,7 +284,7 @@
                                     <goal>compile</goal>
                                 </goals>
                                 <configuration>
-                                    <mainClass>oarlib.teavm.TeaVMEntry</mainClass>
+                                    <mainClass>oarlib.teavm.TeaVMEntryPoint</mainClass>
                                     <classFiles>${project.build.directory}/teavm-classes</classFiles>
                                     <targetDirectory>${project.build.directory}/teavm</targetDirectory>
                                     <targetFileName>teavm.js</targetFileName>

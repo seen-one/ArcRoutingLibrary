@@ -24,10 +24,10 @@
  */
 package oarlib.route.util;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.Route;
 import oarlib.link.impl.ZigZagLink;
 import oarlib.route.impl.ZigZagTour;
-import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -41,7 +41,7 @@ import java.util.Iterator;
 public class RouteExporter {
 
     public static final double ZZ_TIME_WINDOW_THRESHOLD = 1e5; //if a zigzag time window is above this threshold, it will be treated as though it doesn't have a time window by the heuristic
-    private static Logger LOGGER = Logger.getLogger(RouteExporter.class);
+    private static SimpleLogger LOGGER = SimpleLogger.getLogger(RouteExporter.class);
 
     /**
      * Catch all for exporting routes.  To add another format, just add it to the type

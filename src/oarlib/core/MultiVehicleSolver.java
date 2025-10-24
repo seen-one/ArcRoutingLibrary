@@ -23,8 +23,8 @@
  */
 package oarlib.core;
 
-import org.apache.log4j.Logger;
 
+import oarlib.util.SimpleLogger;
 import java.util.Collection;
 
 /**
@@ -33,7 +33,7 @@ import java.util.Collection;
  */
 public abstract class MultiVehicleSolver<V extends Vertex, E extends Link<V>, G extends Graph<V, E>> extends Solver<V, E, G> {
 
-    private static final Logger LOGGER = Logger.getLogger(MultiVehicleSolver.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(MultiVehicleSolver.class);
 
     /**
      * Default constructor; must set problem instance.

@@ -1,5 +1,6 @@
 package core;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntObjectHashMap;
 import gurobi.*;
@@ -17,7 +18,6 @@ import oarlib.solver.impl.DCPPSolver_Edmonds;
 import oarlib.solver.impl.UCPPSolver_Edmonds;
 import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.UndirectedVertex;
-import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -30,7 +30,7 @@ import java.util.ArrayList;
  */
 public class SingleVehicleSolverTestSuite {
 
-    private static final Logger LOGGER = Logger.getLogger(SingleVehicleSolverTestSuite.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(SingleVehicleSolverTestSuite.class);
 
     @Test
     public void testUCPPSolver() {

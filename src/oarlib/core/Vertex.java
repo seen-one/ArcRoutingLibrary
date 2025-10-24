@@ -23,9 +23,9 @@
  */
 package oarlib.core;
 
+import oarlib.util.SimpleLogger;
 import oarlib.exceptions.NoDemandSetException;
 import oarlib.graph.util.Pair;
-import org.apache.log4j.Logger;
 
 import java.util.Collection;
 import java.util.List;
@@ -39,7 +39,7 @@ import java.util.Map;
  */
 public abstract class Vertex {
 
-    private static final Logger LOGGER = Logger.getLogger(Vertex.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(Vertex.class);
 
     private static int counter = 1; //for assigning global vertex ids
     private String mLabel;

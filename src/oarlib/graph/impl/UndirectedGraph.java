@@ -23,6 +23,7 @@
  */
 package oarlib.graph.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Graph;
@@ -31,7 +32,6 @@ import oarlib.exceptions.InvalidEndpointsException;
 import oarlib.graph.util.Pair;
 import oarlib.link.impl.Edge;
 import oarlib.vertex.impl.UndirectedVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,7 +45,7 @@ import java.util.List;
  */
 public class UndirectedGraph extends MutableGraph<UndirectedVertex, Edge> {
 
-    private static Logger LOGGER = Logger.getLogger(UndirectedGraph.class);
+    private static SimpleLogger LOGGER = SimpleLogger.getLogger(UndirectedGraph.class);
 
     //region Constructors
     public UndirectedGraph() {

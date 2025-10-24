@@ -24,6 +24,7 @@
  */
 package oarlib.solver.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import oarlib.core.*;
 import oarlib.graph.impl.UndirectedGraph;
@@ -40,7 +41,6 @@ import oarlib.route.impl.ZigZagTour;
 import oarlib.route.util.RouteExporter;
 import oarlib.route.util.ZigZagExpander;
 import oarlib.vertex.impl.ZigZagVertex;
-import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.*;
@@ -50,7 +50,7 @@ import java.util.*;
  */
 public class WRPPZZTW_PFIH extends SingleVehicleSolver<ZigZagVertex, ZigZagLink, ZigZagGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(WRPPZZTW_PFIH.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(WRPPZZTW_PFIH.class);
 
     //4 weights on the cost for tuning later
     private double mAlpha;

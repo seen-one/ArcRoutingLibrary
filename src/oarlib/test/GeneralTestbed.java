@@ -24,6 +24,7 @@
  */
 package oarlib.test;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Graph;
 import oarlib.core.Problem;
@@ -61,17 +62,13 @@ import oarlib.route.util.SolutionImporter;
 import oarlib.solver.impl.*;
 import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 
 import java.io.*;
 import java.util.*;
 
 public class GeneralTestbed {
 
-    private static final Logger LOGGER = Logger.getLogger(GeneralTestbed.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(GeneralTestbed.class);
 
     /**
      * The main method.  Allows for command line calls to the core solvers.
@@ -79,11 +76,8 @@ public class GeneralTestbed {
      * @param args
      */
     public static void main(String[] args) {
-        Logger rootLogger = Logger.getRootLogger();
-        rootLogger.setLevel(Level.OFF);
-        PatternLayout layout = new PatternLayout("%d{ISO8601} [%t] %-5p %c %x - %m%n");
-        rootLogger.addAppender(new ConsoleAppender(layout));
-
+        // Log4j configuration removed - now using SimpleLogger
+        // SimpleLogger outputs to System.out/System.err by default
 
         //empty call gets help
         if((args.length != 2 && !args[0].equals("7")) && !(args.length == 3 && args[0].equals("7"))) {

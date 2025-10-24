@@ -23,9 +23,9 @@
  */
 package oarlib.improvements;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.*;
 import oarlib.problem.impl.ProblemAttributes;
-import org.apache.log4j.Logger;
 
 import java.util.Collection;
 
@@ -34,7 +34,7 @@ import java.util.Collection;
  */
 public abstract class ImprovementProcedure<V extends Vertex, E extends Link<V>, G extends Graph<V, E>> {
 
-    private static final Logger LOGGER = Logger.getLogger(ImprovementProcedure.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(ImprovementProcedure.class);
     protected ImprovementStrategy.Type mStrat;
     protected Problem<V, E, G> mProblem;
     private G mGraph;

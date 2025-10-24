@@ -24,6 +24,7 @@
  */
 package oarlib.solver.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.*;
@@ -37,7 +38,6 @@ import oarlib.link.impl.WindyEdge;
 import oarlib.problem.impl.ProblemAttributes;
 import oarlib.problem.impl.multivehicle.MinMaxKWRPP;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -50,7 +50,7 @@ import java.util.*;
  */
 public class MultiWRPPSolverHybrid extends MultiVehicleSolver<WindyVertex, WindyEdge, WindyGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(MultiWRPPSolver.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(MultiWRPPSolver.class);
     private WindyGraph mGraph;
     private String mInstanceName;
     private double bestWeight;

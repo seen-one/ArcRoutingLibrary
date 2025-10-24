@@ -24,6 +24,7 @@
  */
 package oarlib.solver.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.*;
@@ -49,7 +50,6 @@ import oarlib.route.util.RouteExpander;
 import oarlib.route.util.SolutionImporter;
 import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.*;
@@ -60,7 +60,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class MultiWRPP_CommunityCollapse extends MultiVehicleSolver<WindyVertex, WindyEdge, WindyGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(MultiWRPP_CollapseSimple.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(MultiWRPP_CollapseSimple.class);
     private HashMap<Integer, HashSet<Integer>> packMap;
     private double alpha;
     private int mNumPartitions;

@@ -23,6 +23,7 @@
  */
 package oarlib.graph.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Graph;
@@ -31,7 +32,6 @@ import oarlib.exceptions.InvalidEndpointsException;
 import oarlib.graph.util.Pair;
 import oarlib.link.impl.MixedEdge;
 import oarlib.vertex.impl.MixedVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,7 +46,7 @@ import java.util.List;
  */
 public class MixedGraph extends MutableGraph<MixedVertex, MixedEdge> {
 
-    private static Logger LOGGER = Logger.getLogger(MixedGraph.class);
+    private static SimpleLogger LOGGER = SimpleLogger.getLogger(MixedGraph.class);
 
     //region Constructors
     public MixedGraph() {

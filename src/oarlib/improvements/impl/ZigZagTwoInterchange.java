@@ -23,6 +23,7 @@
  */
 package oarlib.improvements.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import oarlib.core.Graph;
 import oarlib.core.Problem;
@@ -35,7 +36,6 @@ import oarlib.problem.impl.ProblemAttributes;
 import oarlib.route.impl.ZigZagTour;
 import oarlib.route.util.ZigZagExpander;
 import oarlib.vertex.impl.ZigZagVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -50,7 +50,7 @@ import java.util.Collection;
  */
 public class ZigZagTwoInterchange extends IntraRouteImprovementProcedure<ZigZagVertex, ZigZagLink, ZigZagGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(ZigZagTwoInterchange.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(ZigZagTwoInterchange.class);
 
     public ZigZagTwoInterchange(Problem<ZigZagVertex, ZigZagLink, ZigZagGraph> problem) {
         super(problem);

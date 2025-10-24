@@ -23,6 +23,7 @@
  */
 package oarlib.route.util;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import oarlib.core.Graph;
 import oarlib.core.Link;
@@ -30,7 +31,6 @@ import oarlib.core.Vertex;
 import oarlib.graph.util.CommonAlgorithms;
 import oarlib.link.impl.AsymmetricLink;
 import oarlib.route.impl.Tour;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 
@@ -39,7 +39,7 @@ import java.util.ArrayList;
  */
 public class RouteExpander<G extends Graph> {
 
-    private static final Logger LOGGER = Logger.getLogger(RouteExpander.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(RouteExpander.class);
 
     G mGraph;
     int[][] dist;

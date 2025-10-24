@@ -1,5 +1,6 @@
 package core;
 
+import oarlib.util.SimpleLogger;
 import oarlib.exceptions.InvalidEndpointsException;
 import oarlib.exceptions.NegativeCycleException;
 import oarlib.graph.graphgen.erdosrenyi.DirectedErdosRenyiGraphGenerator;
@@ -7,7 +8,6 @@ import oarlib.graph.graphgen.erdosrenyi.WindyErdosRenyiGraphGenerator;
 import oarlib.graph.impl.DirectedGraph;
 import oarlib.graph.impl.WindyGraph;
 import oarlib.graph.util.CommonAlgorithms;
-import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.util.HashSet;
@@ -22,7 +22,7 @@ import static org.junit.Assert.assertFalse;
  */
 public class ShortestPathsTestSuite {
 
-    private static final Logger LOGGER = Logger.getLogger(ShortestPathsTestSuite.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(ShortestPathsTestSuite.class);
 
     @Test
     public void testDijkstras() {

@@ -23,6 +23,7 @@
  */
 package oarlib.graph.util;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntObjectHashMap;
@@ -43,13 +44,12 @@ import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.MixedVertex;
 import oarlib.vertex.impl.UndirectedVertex;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.*;
 
 public class CommonAlgorithms {
 
-    private static final Logger LOGGER = Logger.getLogger(CommonAlgorithms.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(CommonAlgorithms.class);
 
     /**
      * Hierholzer's algorithm for determining an Euler tour through an directed Eulerian graph.

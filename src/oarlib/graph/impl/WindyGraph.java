@@ -23,6 +23,7 @@
  */
 package oarlib.graph.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntObjectHashMap;
@@ -32,7 +33,6 @@ import oarlib.exceptions.InvalidEndpointsException;
 import oarlib.graph.util.Pair;
 import oarlib.link.impl.WindyEdge;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +40,7 @@ import java.util.List;
 
 public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
 
-    private static final Logger LOGGER = Logger.getLogger(WindyGraph.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(WindyGraph.class);
 
     //region Constructors
     public WindyGraph() {
