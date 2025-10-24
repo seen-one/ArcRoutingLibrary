@@ -284,7 +284,7 @@
                                     <goal>compile</goal>
                                 </goals>
                                 <configuration>
-                                    <mainClass>oarlib.teavm.TeaVMEntryPoint</mainClass>
+                                    <mainClass>oarlib.teavm.TeaVMWrapper</mainClass>
                                     <classFiles>${project.build.directory}/teavm-classes</classFiles>
                                     <targetDirectory>${project.build.directory}/teavm</targetDirectory>
                                     <targetFileName>teavm.js</targetFileName>

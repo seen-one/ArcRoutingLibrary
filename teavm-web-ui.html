@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arc Routing Library - TeaVM Web UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        select, textarea, input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+            font-size: 0.85em;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .output-panel {
+            grid-column: 1 / -1;
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+        }
+
+        .output-panel h2 {
+            color: #667eea;
+        }
+
+        #output {
+            background: #222;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .controls {
+            margin-top: 15px;
+        }
+
+        button.secondary {
+            background: #666;
+            margin-right: 10px;
+        }
+
+        button.secondary:hover {
+            background: #555;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .solver-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛣️ Arc Routing Library</h1>
+            <p>TeaVM-Powered Web Interface</p>
+        </header>
+
+        <div class="content">
+            <!-- Solver Selection Panel -->
+            <div class="panel">
+                <h2>Solver Selection</h2>
+                
+                <div class="form-group">
+                    <label for="solver">Select Solver:</label>
+                    <select id="solver">
+                        <option value="1">1 - Directed Chinese Postman (DCPP) - Edmonds</option>
+                        <option value="2">2 - Undirected Chinese Postman (UCPP) - Edmonds</option>
+                        <option value="3">3 - Mixed Chinese Postman (MCPP) - Frederickson</option>
+                        <option value="4">4 - Mixed Chinese Postman (MCPP) - Yaoyuenyong</option>
+                        <option value="5">5 - Windy Chinese Postman (WPP) - Win</option>
+                        <option value="6" disabled>6 - [NOT SUPPORTED] Directed Rural Postman (DRPP)</option>
+                        <option value="7" selected>7 - Windy Rural Postman (WRPP) - Benavent H1</option>
+                    </select>
+                    <div class="solver-description" id="solverDesc"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="instanceSelect">Instance Source:</label>
+                    <select id="instanceSelect">
+                        <option value="upload">Upload OARLIB File</option>
+                        <option value="paste">Paste OARLIB Content</option>
+                    </select>
+                </div>
+
+                <!-- Upload Section -->
+                <div id="uploadSection" class="form-group">
+                    <label for="fileInput">Choose OARLIB File:</label>
+                    <input type="file" id="fileInput" accept=".oarlib,.txt">
+                    <div id="fileName" style="margin-top: 5px; font-size: 0.9em; color: #666;"></div>
+                </div>
+
+                <!-- Paste Section -->
+                <div id="pasteSection" class="form-group" style="display: none;">
+                    <label for="oarlibContent">OARLIB Content:</label>
+                    <textarea id="oarlibContent" placeholder="Paste OARLIB file content here..."></textarea>
+                </div>
+
+                <div class="controls">
+                    <button onclick="runSolver()">▶️ Run Solver</button>
+                    <button class="secondary" onclick="clearOutput()">🗑️ Clear Output</button>
+                </div>
+
+                <div id="status"></div>
+            </div>
+
+            <!-- Information Panel -->
+            <div class="panel">
+                <h2>ℹ️ Information</h2>
+                
+                <div style="font-size: 0.95em; line-height: 1.6; color: #555;">
+                    <h3 style="color: #667eea; margin-top: 15px; margin-bottom: 8px;">About This Tool</h3>
+                    <p>
+                        This web interface provides access to the Arc Routing Library solvers 
+                        compiled using TeaVM, allowing them to run directly in the browser 
+                        and via Node.js.
+                    </p>
+
+                    <h3 style="color: #667eea; margin-top: 15px; margin-bottom: 8px;">Supported Formats</h3>
+                    <ul style="margin-left: 20px;">
+                        <li>OARLIB format (.oarlib, .txt)</li>
+                        <li>Windy graphs with optional and required edges</li>
+                        <li>Coordinates for vertices</li>
+                    </ul>
+
+                    <h3 style="color: #667eea; margin-top: 15px; margin-bottom: 8px;">Features</h3>
+                    <ul style="margin-left: 20px;">
+                        <li>✓ Multiple solver algorithms</li>
+                        <li>✓ OARLIB file parsing</li>
+                        <li>✓ Real-time output</li>
+                        <li>✓ Browser & Node.js compatible</li>
+                    </ul>
+
+                    <h3 style="color: #667eea; margin-top: 15px; margin-bottom: 8px;">Getting Started</h3>
+                    <ol style="margin-left: 20px;">
+                        <li>Select a solver</li>
+                        <li>Choose instance source (upload/paste)</li>
+                        <li>Click "Run Solver"</li>
+                        <li>View results in output panel</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="panel output-panel">
+                <h2>📊 Output</h2>
+                <div id="output">Ready to execute solver...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="target/teavm/teavm.js"></script>
+    <script>
+        // Initialize event listeners
+        document.getElementById('solver').addEventListener('change', updateSolverDescription);
+        document.getElementById('instanceSelect').addEventListener('change', updateInstanceSection);
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        function updateSolverDescription() {
+            const solver = document.getElementById('solver').value;
+            const descriptions = {
+                '1': 'Directed Chinese Postman - Finds the shortest closed walk that traverses every directed edge at least once.',
+                '2': 'Undirected Chinese Postman - Finds the shortest closed walk that traverses every undirected edge at least once.',
+                '3': 'Mixed MCPP (Frederickson) - Heuristic for graphs with both directed and undirected edges.',
+                '4': 'Mixed MCPP (Yaoyuenyong) - Alternative heuristic for mixed graphs.',
+                '5': 'Windy Chinese Postman - Handles edges with different costs in each direction.',
+                '6': '[NOT SUPPORTED] DRPP requires native libraries.',
+                '7': 'Windy Rural Postman - Solves the rural postman problem on windy graphs with required and optional edges.'
+            };
+            document.getElementById('solverDesc').textContent = descriptions[solver] || '';
+        }
+
+        function updateInstanceSection() {
+            const select = document.getElementById('instanceSelect').value;
+            document.getElementById('uploadSection').style.display = select === 'upload' ? 'block' : 'none';
+            document.getElementById('pasteSection').style.display = select === 'paste' ? 'block' : 'none';
+        }
+
+        let uploadedContent = '';
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById('fileName').textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    uploadedContent = e.target.result;
+                    document.getElementById('oarlibContent').value = uploadedContent;
+                };
+                reader.readAsText(file);
+            } else {
+                uploadedContent = '';
+                document.getElementById('fileName').textContent = '';
+            }
+        }
+
+        function addOutput(text) {
+            const output = document.getElementById('output');
+            if (output.textContent.length > 0) {
+                output.textContent += '\n';
+            }
+            output.textContent += text;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = 'Output cleared. Ready for next execution...';
+            document.getElementById('status').innerHTML = '';
+        }
+
+        function setStatus(message, type) {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+
+        async function runSolver() {
+            const solver = document.getElementById('solver').value;
+            const instanceSelect = document.getElementById('instanceSelect').value;
+            
+            if (solver === '6') {
+                setStatus('❌ DRPP solver is not supported in TeaVM', 'error');
+                addOutput('ERROR: DRPP requires native libraries that are not available in TeaVM.');
+                return;
+            }
+
+            let instanceContent = '';
+            
+            if (instanceSelect === 'upload') {
+                if (document.getElementById('fileInput').files.length === 0 || !uploadedContent.trim()) {
+                    setStatus('❌ Please select a valid OARLIB file to upload', 'error');
+                    return;
+                }
+                instanceContent = uploadedContent;
+            } else if (instanceSelect === 'paste') {
+                instanceContent = document.getElementById('oarlibContent').value;
+                if (!instanceContent.trim()) {
+                    setStatus('❌ Please paste OARLIB content', 'error');
+                    return;
+                }
+            }
+
+            setStatus('⏳ Running solver...', 'loading');
+            const headerLines = [
+                `Solver: ${solver}`,
+                `Instance Type: ${instanceSelect}`,
+                `Content Size: ${instanceContent.length} bytes`,
+                '',
+                'Executing Arc Routing Library solver in TeaVM...',
+                '',
+                '================================================',
+                '[TeaVM Runtime Output]',
+                '================================================'
+            ];
+            document.getElementById('output').textContent = headerLines.join('\n');
+
+            if (typeof window.main !== 'function') {
+                addOutput('ERROR: TeaVM runtime is not available. Ensure teavm.js is loaded.');
+                setStatus('❌ TeaVM runtime not loaded', 'error');
+                return;
+            }
+
+            const restoreConsole = interceptTeaVMConsole(message => addOutput(message),
+                message => addOutput('ERROR: ' + message));
+
+            try {
+                await runTeaVMSolver([String(solver), instanceContent]);
+                addOutput('================================================');
+                addOutput('✓ Execution completed successfully');
+                addOutput('================================================');
+                setStatus('✓ Solver executed successfully', 'success');
+            } catch (error) {
+                const message = error && error.message ? error.message : error;
+                addOutput('ERROR: ' + message);
+                setStatus(`❌ Error during execution: ${message}`, 'error');
+            } finally {
+                restoreConsole();
+            }
+        }
+
+        // Initialize
+        updateSolverDescription();
+        updateInstanceSection();
+
+        function interceptTeaVMConsole(onStdout, onStderr) {
+            const originalLog = console.log;
+            const originalError = console.error;
+
+            console.log = (...args) => {
+                const message = args.map(formatConsoleArg).join(' ');
+                onStdout(message);
+                originalLog.apply(console, args);
+            };
+
+            console.error = (...args) => {
+                const message = args.map(formatConsoleArg).join(' ');
+                onStderr(message);
+                originalError.apply(console, args);
+            };
+
+            return () => {
+                console.log = originalLog;
+                console.error = originalError;
+            };
+        }
+
+        function formatConsoleArg(arg) {
+            if (typeof arg === 'string') {
+                return arg;
+            }
+            try {
+                return JSON.stringify(arg);
+            } catch (err) {
+                return String(arg);
+            }
+        }
+
+        function runTeaVMSolver(args) {
+            return new Promise((resolve, reject) => {
+                try {
+                    window.main(args, err => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
