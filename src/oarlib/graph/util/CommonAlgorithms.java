@@ -1944,7 +1944,8 @@ public class CommonAlgorithms {
             return;
         }
 
-        PriorityQueue<Pair<Integer>> pq = new PriorityQueue<Pair<Integer>>(n, new DijkstrasComparator());
+    PriorityQueue<Pair<Integer>> pq = new PriorityQueue<Pair<Integer>>(n, new DijkstrasComparator());
+    boolean[] visited = new boolean[n + 1];
         Arrays.fill(dist, Integer.MAX_VALUE);
         Arrays.fill(path, -1);
         if (recordEdgePath) {
@@ -1967,6 +1968,11 @@ public class CommonAlgorithms {
                 continue; // disconnected vertex
             }
 
+            if (visited[uid]) {
+                continue;
+            }
+            visited[uid] = true;
+
             DirectedVertex u = indexedVertices.get(uid);
             if (u == null) {
                 continue;
@@ -1987,6 +1993,9 @@ public class CommonAlgorithms {
                 }
 
                 int vid = v.getId();
+                if (visited[vid]) {
+                    continue;
+                }
                 int alt = currentDist + min;
                 if (alt < dist[vid]) {
                     dist[vid] = alt;
