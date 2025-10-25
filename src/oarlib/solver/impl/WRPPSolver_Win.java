@@ -66,6 +66,7 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
         try {
             int n = g.getVertices().size(); //num vertices
             int m = g.getEdges().size(); // num edges
+            LOGGER.info("Win connectRequiredComponents: n=" + n + ", m=" + m);
 
 
 			/*
@@ -76,10 +77,15 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
 
             //has the same number of vertices as g
             TIntObjectHashMap<WindyVertex> gVertices = g.getInternalVertexMap();
+            LOGGER.info("Win connectRequiredComponents: vertex map size=" + gVertices.size());
             WindyVertex tempVertex;
             for (int i = 1; i <= n; i++) {
+                WindyVertex original = gVertices.get(i);
+                if (original == null) {
+                    throw new IllegalStateException("connectRequiredComponents missing vertex id " + i + " of " + n);
+                }
                 tempVertex = new WindyVertex("original");
-                tempVertex.setCoordinates(gVertices.get(i).getX(), gVertices.get(i).getY());
+                tempVertex.setCoordinates(original.getX(), original.getY());
                 windyReq.addVertex(tempVertex);
             }
 
@@ -87,6 +93,7 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
 
             //edges from the original graph
             TIntObjectHashMap<WindyEdge> indexedWindyEdges = g.getInternalEdgeMap();
+            LOGGER.info("Win connectRequiredComponents: edge map size=" + indexedWindyEdges.size());
 
             WindyEdge temp;
             int mreq = 0; //num required edges
@@ -103,6 +110,9 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
 			 */
             for (int i = 1; i <= m; i++) {
                 temp = indexedWindyEdges.get(i);
+                if (temp == null) {
+                    throw new IllegalStateException("connectRequiredComponents missing edge id " + i + " of " + m);
+                }
                 if (temp.isRequired()) {
                     mreq++;
                     edge1.add(temp.getEndpoints().getFirst().getId());
@@ -110,6 +120,7 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
                     windyReq.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "original", temp.getCost(), temp.getReverseCost(), i, true);
                 }
             }
+            LOGGER.info("Win connectRequiredComponents: required edges count=" + mreq);
 
             //now figure out the connected components
             int[] component = new int[n + 1];
@@ -122,6 +133,8 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
                 nodei[i] = e1[i];
                 nodej[i] = e2[i];
             }
+
+            LOGGER.info("Win connectRequiredComponents: invoking connectedComponents with n=" + n + ", mreq=" + mreq);
 
             CommonAlgorithms.connectedComponents(n, mreq, nodei, nodej, component);
 
@@ -141,6 +154,7 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
                     extraVertices.add(wv.getId());
                 }
             }
+            LOGGER.info("Win connectRequiredComponents: extraComponents size=" + extraComponents.size());
 
             //now find shortest paths in the original graph to set up the MST graph
             int[] dist = new int[n + 1];
@@ -155,6 +169,7 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
             for (int i = 1; i <= mstN; i++) {
                 mstGraph.addVertex(new UndirectedVertex("original"));
             }
+            LOGGER.info("Win connectRequiredComponents: mst graph vertex count=" + mstN);
 
 
 			/*
@@ -1018,7 +1033,20 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
         TIntObjectHashMap<WindyEdge> indexedWindyEdges = g.getInternalEdgeMap();
         do {
             next = path[end];
-            temp = indexedWindyEdges.get(edgePath[end]);
+            if (next <= 0 && end != start) {
+                LOGGER.error("calculateAveragePathCost encountered invalid predecessor; start=" + start + ", currentEnd=" + end + ", next=" + next);
+                throw new IllegalStateException("calculateAveragePathCost failed: predecessor index <= 0 before reaching start");
+            }
+            int edgeId = edgePath[end];
+            if (edgeId <= 0) {
+                LOGGER.error("calculateAveragePathCost encountered non-positive edge id; start=" + start + ", currentEnd=" + end + ", next=" + next + ", edgeId=" + edgeId);
+                throw new IllegalStateException("calculateAveragePathCost failed: edgePath <= 0 for current segment");
+            }
+            temp = indexedWindyEdges.get(edgeId);
+            if (temp == null) {
+                LOGGER.error("calculateAveragePathCost missing edge id " + edgeId + "; start=" + start + ", currentEnd=" + end);
+                throw new IllegalStateException("calculateAveragePathCost failed: missing edge id " + edgeId);
+            }
             ans += temp.getCost() + temp.getReverseCost();
         } while ((end = next) != start);
         return ans / 2.0;

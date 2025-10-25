@@ -1944,52 +1944,56 @@ public class CommonAlgorithms {
             return;
         }
 
-        PriorityQueue<Pair<Integer>> pq = new PriorityQueue<Pair<Integer>>(n, new DijkstrasComparator()); //first in the pair is the id, second is the weight; sorted by weight.
+        PriorityQueue<Pair<Integer>> pq = new PriorityQueue<Pair<Integer>>(n, new DijkstrasComparator());
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        Arrays.fill(path, -1);
+        if (recordEdgePath) {
+            Arrays.fill(edgePath, -1);
+        }
         dist[sourceId] = 0;
         path[sourceId] = -1;
-        for (int i = 1; i <= n; i++) {
-            if (i != sourceId) {
-                dist[i] = Integer.MAX_VALUE;
-                path[i] = -1;
-                if (recordEdgePath)
-                    edgePath[i] = -1;
-            }
-            pq.add(new Pair<Integer>(i, dist[i]));
-        }
+        pq.add(new Pair<Integer>(sourceId, 0));
 
-        DirectedVertex u;
-        Pair<Integer> temp;
-        int min, alt, uid, vid, minid;
-        minid = Integer.MAX_VALUE;
         TIntObjectHashMap<DirectedVertex> indexedVertices = virtual.getInternalVertexMap();
-        //now actually do the walk
+
         while (!pq.isEmpty()) {
-            temp = pq.poll();
-            u = indexedVertices.get(temp.getFirst());
-            uid = u.getId();
-            if (dist[uid] == Integer.MAX_VALUE)
-                continue; //we got to the point where it's disconnected; don't add to max integer, and cause loop around
+            Pair<Integer> temp = pq.poll();
+            int uid = temp.getFirst();
+            int currentDist = temp.getSecond();
+            if (currentDist > dist[uid]) {
+                continue; // stale entry
+            }
+            if (currentDist == Integer.MAX_VALUE) {
+                continue; // disconnected vertex
+            }
+
+            DirectedVertex u = indexedVertices.get(uid);
+            if (u == null) {
+                continue;
+            }
+
             for (DirectedVertex v : u.getNeighbors().keySet()) {
                 List<Arc> l = u.getNeighbors().get(v);
-                min = Integer.MAX_VALUE;
-                vid = v.getId();
-                if (!pq.contains(new Pair<Integer>(vid, dist[vid])))
-                    continue;
+                int min = Integer.MAX_VALUE;
+                int minid = Integer.MAX_VALUE;
                 for (Arc link : l) {
                     if (link.getCost() < min) {
                         min = link.getCost();
                         minid = link.getMatchId();
                     }
                 }
-                //don't go past max integer, that's bad
-                alt = dist[uid] + min;
+                if (min == Integer.MAX_VALUE) {
+                    continue;
+                }
+
+                int vid = v.getId();
+                int alt = currentDist + min;
                 if (alt < dist[vid]) {
-                    //found a better path
-                    pq.remove(new Pair<Integer>(vid, dist[vid]));
                     dist[vid] = alt;
                     path[vid] = uid;
-                    if (recordEdgePath)
+                    if (recordEdgePath) {
                         edgePath[vid] = minid;
+                    }
                     pq.add(new Pair<Integer>(vid, dist[vid]));
                 }
             }

@@ -37,6 +37,7 @@ import oarlib.problem.impl.rpp.DirectedRPP;
 import oarlib.problem.impl.rpp.WindyRPP;
 import oarlib.solver.impl.*;
 import oarlib.vertex.impl.MixedVertex;
+import oarlib.vertex.impl.WindyVertex;
 
 import java.util.*;
 
@@ -135,12 +136,68 @@ public class TeaVMWrapper {
                     break;
                 case 7: //WRPP
                     try {
-                        WindyGraph wg2 = OARLibParser.parseWindyGraph(instanceContent);
+                        System.out.println("[DEBUG] Parsing WindyGraph with format detection...");
+                        WindyGraph wg2 = OARLibParser.parseWindyGraphWithFormatDetection(instanceContent);
+                        System.out.println("[DEBUG] WindyGraph parsed successfully. Vertices: " + wg2.getVertices().size() + ", Edges: " + wg2.getEdges().size());
+
+                        try {
+                            System.out.println("[DEBUG] Inspecting graph collections...");
+                            java.util.Collection<WindyEdge> debugEdges = wg2.getEdges();
+                            if (debugEdges == null) {
+                                System.out.println("[DEBUG] wg2.getEdges() returned null");
+                            } else {
+                                int dbgCount = 0;
+                                for (WindyEdge edge : debugEdges) {
+                                    if (edge == null) {
+                                        System.out.println("[DEBUG] Encountered null edge in collection");
+                                        break;
+                                    }
+                                    if (dbgCount < 3) {
+                                        System.out.println("[DEBUG] Edge sample id=" + edge.getId() + " cost=" + edge.getCost() + " revCost=" + edge.getReverseCost() + " required=" + edge.isRequired());
+                                    }
+                                    dbgCount++;
+                                }
+                                System.out.println("[DEBUG] Edge collection size observed: " + dbgCount);
+                            }
+
+                            java.util.Collection<WindyVertex> debugVertices = wg2.getVertices();
+                            if (debugVertices == null) {
+                                System.out.println("[DEBUG] wg2.getVertices() returned null");
+                            } else {
+                                int dbgVertexCount = 0;
+                                for (WindyVertex vertex : debugVertices) {
+                                    if (vertex == null) {
+                                        System.out.println("[DEBUG] Encountered null vertex in collection");
+                                        break;
+                                    }
+                                    if (dbgVertexCount < 3) {
+                                        System.out.println("[DEBUG] Vertex sample id=" + vertex.getId() + " degree=" + vertex.getDegree());
+                                    }
+                                    dbgVertexCount++;
+                                }
+                                System.out.println("[DEBUG] Vertex collection size observed: " + dbgVertexCount);
+                            }
+                        } catch (Throwable inspectionError) {
+                            System.out.println("[DEBUG] Error while inspecting graph: " + inspectionError.getMessage());
+                            inspectionError.printStackTrace();
+                        }
+                        
+                        System.out.println("[DEBUG] Creating WindyRPP problem instance...");
                         WindyRPP wrpp = new WindyRPP(wg2, "Instance");
+                        System.out.println("[DEBUG] WindyRPP created successfully");
+                        
+                        System.out.println("[DEBUG] Creating WRPPSolver_Benavent_H1...");
                         WRPPSolver_Benavent_H1 wrppSolver = new WRPPSolver_Benavent_H1(wrpp);
+                        System.out.println("[DEBUG] Solver created successfully");
+                        
+                        System.out.println("[DEBUG] Calling trySolve()...");
                         wrppSolver.trySolve();
+                        System.out.println("[DEBUG] trySolve() completed");
+                        
+                        System.out.println("[DEBUG] Attempting to get solution...");
                         System.out.println(wrppSolver.printCurrentSol());
                     } catch (Exception e) {
+                        System.out.println("[ERROR] Exception in WRPP solver:");
                         e.printStackTrace();
                     }
                     break;

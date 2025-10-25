@@ -206,6 +206,65 @@ public class OARLibParser {
         return graph;
     }
 
+    /**
+     * Parse WindyGraph from content with format auto-detection.
+     * Tries Corberan format first, then falls back to OARLib format.
+     * This mirrors the behavior of GeneralTestbed.java for WRPP solver.
+     *
+     * @param content The full file content as a string
+     * @return A WindyGraph instance populated from the file content
+     * @throws Exception if parsing fails
+     */
+    public static WindyGraph parseWindyGraphWithFormatDetection(String content) throws Exception {
+        LOGGER.info("Parsing WindyGraph with format auto-detection...");
+
+        // Try Corberan format first
+        try {
+            LOGGER.info("Attempting to parse as Corberan format...");
+            return parseWindyGraphCorberan(content);
+        } catch (Exception e) {
+            LOGGER.info("Could not read file in Corberan format; attempting to read in OARLib format.");
+            // Fall back to OARLib format
+            try {
+                return parseWindyGraph(content);
+            } catch (Exception e2) {
+                throw new Exception("Failed to parse WindyGraph in both Corberan and OARLib formats", e2);
+            }
+        }
+    }
+
+    /**
+     * Parse WindyGraph from Corberan format content string.
+     * Corberan format is similar to OARLib but may have slightly different structure.
+     *
+     * @param content The full Corberan file content as a string
+     * @return A WindyGraph instance populated from the file content
+     * @throws Exception if parsing fails
+     */
+    public static WindyGraph parseWindyGraphCorberan(String content) throws Exception {
+        LOGGER.info("Parsing Corberan format content...");
+
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("Corberan content is empty.");
+        }
+
+        // For now, Corberan and OARLib formats are similar enough that we can parse them the same way
+        // The main difference is in how they detect the format. If this throws an exception,
+        // it will be caught by the caller and OARLib format will be tried.
+        
+        String normalizedContent = sanitizeContent(content);
+        
+        // Check for Corberan-specific markers
+        if (!normalizedContent.toLowerCase().contains("corberan") && 
+            !normalizedContent.contains("Corberan")) {
+            // If no Corberan marker found, this is likely not Corberan format
+            throw new IllegalArgumentException("Content does not appear to be in Corberan format");
+        }
+
+        // Parse using same logic as OARLib (they're compatible)
+        // Re-use the parseWindyGraph logic but let it fail if format is wrong
+        return parseWindyGraph(content);
+    }
 
     /**
      * Parse DirectedGraph from OARLIB content string
