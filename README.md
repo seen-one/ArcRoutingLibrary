@@ -1,51 +1,27 @@
-#ArcRoutingLibrary
+# Route-Crafter-ArcRoutingLibrary
 
-[![DOI](https://zenodo.org/badge/11673331.svg)](https://zenodo.org/badge/latestdoi/11673331)
+Fork of [Olibear/ArcRoutingLibrary: A collection of problem abstractions and solver implementations for arc-routing problems](https://github.com/Olibear/ArcRoutingLibrary)
 
-##Features
+lots of hacks and begging of AI so it can compile using TeaVM to javascript for [Route Crafter](https://github.com/seen-one/Route-Crafter).
 
-* Collection of Common Algorithms
-* DCPP Solver (Edmonds)
-* DCPP Solver (Gurobi IP implementation)
-* UCPP Solver (Edmonds)
-* UCPP Solver (Gurobi IP implementation)
-* MCPP Heuristic (Frederickson)
-* MCPP Heuristic (Yaoyuenyong)
-* WRPP Heuristic (WRPP1 Benavent)
-* WRPP Heuristic (H1 Benavent)
-* DRPP Heuristic (Christofides)
-* Visualization Utilities
-* OSM graph ingestion
-* Decoupled Improvement Procedure Framework
+## Compile
+To compile, install JDK and Maven then run this command
 
-##About the Author
+    mvn clean package -Pteavm -DskipTests
 
-Oliver Lum is currently a PhD Candidate in the University of Maryland, College Park's Applied Mathematics and Scientific Computation (AMSC) program.  His research focus is in combinatorial optimization over networks, specifically with regard to arc routing problems.
+## Command line usage example for testing
 
-##Background
+    node teavm-nodejs-test.js 7 test.oarlib
+    
+    java -jar target\arc-routing-library-1.0.0-fat.jar 7 test.oarlib
+* Where the number refers to the [mode](https://github.com/Olibear/ArcRoutingLibrary/blob/master/HOW_TO_USE.txt)
+* .oarlib files can be generated with Route Crafter by adding accessing the debug menu by appending ?debug to the end of the URL.
+* Or open teavm-web-ui.html to test in the web browser
+## Changes
 
-After being tasked with writing a solver for a new arc routing problem, and having zero code base to work from, the author identified several inconveniences: 
-
-* First, although Java is fast becoming the industry standard for most new projects, the vast majority of robust graph libraries were composed for C/C++ (e.g. Boost, LEMON, etc.)
-* Second, what libraries did exist were catered towards node-routing applications (consistent with literature), despite the close relationship between the two.
-* Third, software development in research is (for a variety of legitimate reasons), fairly stove-piped, leading to time lost re-implementing other methods both for comparison, as well as to solve sub-problems.
-
-This library is intended to be a collection of problem abstractions and solver implementations for some common arc-routing problems.  We hope that its existence reduces the time it takes for new researchers to get started.
-
-##License
-
-This library is released under the MIT license. For more details, see the License.txt
-
-##Tutorial
-
-For some example code snippts, check out GeneralTestbed.java .  
-
-## Special Thanks
-
-Any amount of success that this project may achieve would not have been possible without the guidance and aid of the following individuals:
-
-* Dr. Bruce Golden (Advisor)
-* Dr. Angel Corberan
-* Dr. Zaw Win
-* Dr. Kriangchai Yaoyuenyong
-* Dr. Vincente Campos
+* Prepared for Maven compiling
+* TeaVM doesn't support most libraries, most aren't needed so they are stubbed or are replaced with something simpler
+* Blossom V replaced with greedy
+* mode 6 (Christofides's Directed Rural Postman heuristic) disabled due to MSArbor requirement
+* Hierholzer forward movement preference
+* More
