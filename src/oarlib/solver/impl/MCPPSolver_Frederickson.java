@@ -23,6 +23,7 @@
  */
 package oarlib.solver.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Graph;
 import oarlib.core.Problem;
@@ -41,7 +42,6 @@ import oarlib.route.impl.Tour;
 import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.MixedVertex;
 import oarlib.vertex.impl.UndirectedVertex;
-import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -56,7 +56,7 @@ import java.util.*;
  */
 public class MCPPSolver_Frederickson extends SingleVehicleSolver<MixedVertex, MixedEdge, MixedGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(MCPPSolver_Frederickson.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(MCPPSolver_Frederickson.class);
 
     public MCPPSolver_Frederickson(Problem<MixedVertex, MixedEdge, MixedGraph> instance) throws IllegalArgumentException {
         super(instance);

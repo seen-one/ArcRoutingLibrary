@@ -23,11 +23,11 @@
  */
 package oarlib.problem.impl;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.*;
 import oarlib.graph.util.Utils;
 import oarlib.metrics.Metric;
 import oarlib.route.impl.Tour;
-import org.apache.log4j.Logger;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -37,7 +37,7 @@ import java.util.HashSet;
  */
 public abstract class ChinesePostmanProblem<V extends Vertex, E extends Link<V>, G extends Graph<V, E>> extends Problem<V, E, G> {
 
-    private static final Logger LOGGER = Logger.getLogger(ChinesePostmanProblem.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(ChinesePostmanProblem.class);
 
     protected ChinesePostmanProblem(G graph, String name, Metric objFunc) {
         super(graph, name, objFunc);

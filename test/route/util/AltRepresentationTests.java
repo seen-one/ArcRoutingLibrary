@@ -1,5 +1,6 @@
 package route.util;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import oarlib.core.Route;
 import oarlib.graph.impl.WindyGraph;
@@ -7,8 +8,6 @@ import oarlib.graph.util.Utils;
 import oarlib.problem.impl.rpp.WindyRPP;
 import oarlib.route.util.RouteExpander;
 import oarlib.solver.impl.WRPPSolver_Benavent_H1;
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -22,12 +21,12 @@ import static org.junit.Assert.assertEquals;
  */
 public class AltRepresentationTests {
 
-    private static final Logger LOGGER = Logger.getLogger(AltRepresentationTests.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(AltRepresentationTests.class);
 
     @Test
     public void testRouteFlattenerExpander() {
 
-        BasicConfigurator.configure();
+        // BasicConfigurator no longer needed - SimpleLogger is ready to use
 
         try {
 

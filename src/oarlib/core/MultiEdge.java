@@ -23,8 +23,8 @@
  */
 package oarlib.core;
 
+import oarlib.util.SimpleLogger;
 import oarlib.exceptions.WrongEdgeTypeException;
-import org.apache.log4j.Logger;
 
 /**
  * Originally intended as a way of keeping track of things in the Yaoyuenyong's algorithm,
@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
  */
 public class MultiEdge<E extends Link<? extends Vertex>> {
 
-    private static final Logger LOGGER = Logger.getLogger(MultiEdge.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(MultiEdge.class);
 
     private int numCopies; // how many copies does this edge represent (if this is zero, we still have the original)
     private E first; // the original edge / arc that this multi-edge represents

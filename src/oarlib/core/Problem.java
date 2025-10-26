@@ -23,9 +23,9 @@
  */
 package oarlib.core;
 
+import oarlib.util.SimpleLogger;
 import oarlib.metrics.Metric;
 import oarlib.problem.impl.ProblemAttributes;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,7 +38,7 @@ import java.util.Collection;
  */
 public abstract class Problem<V extends Vertex, E extends Link<V>, G extends Graph<V, E>> {
 
-    private static final Logger LOGGER = Logger.getLogger(Problem.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(Problem.class);
 
     protected String mName = "";
     protected G mGraph;

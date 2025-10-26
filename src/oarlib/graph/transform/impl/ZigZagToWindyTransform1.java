@@ -24,11 +24,11 @@
  */
 package oarlib.graph.transform.impl;
 
+import oarlib.util.SimpleLogger;
 import oarlib.graph.impl.WindyGraph;
 import oarlib.graph.impl.ZigZagGraph;
 import oarlib.graph.transform.GraphTransformer;
 import oarlib.link.impl.ZigZagLink;
-import org.apache.log4j.Logger;
 
 /**
  * First attempt to transform a ZigZag problem into a WRPP problem that is solved using existing heuristics
@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
  */
 public class ZigZagToWindyTransform1 implements GraphTransformer<ZigZagGraph, WindyGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(EdgeInducedSubgraphTransform.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(EdgeInducedSubgraphTransform.class);
 
     ZigZagGraph mGraph;
 

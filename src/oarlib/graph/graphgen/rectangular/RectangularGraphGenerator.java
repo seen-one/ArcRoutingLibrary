@@ -23,8 +23,8 @@
  */
 package oarlib.graph.graphgen.rectangular;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.Graph;
-import org.apache.log4j.Logger;
 
 import java.util.Random;
 
@@ -33,7 +33,7 @@ import java.util.Random;
  */
 public abstract class RectangularGraphGenerator<S extends Graph> {
 
-    private static final Logger LOGGER = Logger.getLogger(RectangularGraphGenerator.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(RectangularGraphGenerator.class);
     protected static Random rng = new Random(1000);
     private double defaultDensity;
 

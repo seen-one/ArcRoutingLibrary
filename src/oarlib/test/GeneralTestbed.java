@@ -24,6 +24,7 @@
  */
 package oarlib.test;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Graph;
 import oarlib.core.Problem;
@@ -61,17 +62,13 @@ import oarlib.route.util.SolutionImporter;
 import oarlib.solver.impl.*;
 import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 
 import java.io.*;
 import java.util.*;
 
 public class GeneralTestbed {
 
-    private static final Logger LOGGER = Logger.getLogger(GeneralTestbed.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(GeneralTestbed.class);
 
     /**
      * The main method.  Allows for command line calls to the core solvers.
@@ -79,11 +76,8 @@ public class GeneralTestbed {
      * @param args
      */
     public static void main(String[] args) {
-        Logger rootLogger = Logger.getRootLogger();
-        rootLogger.setLevel(Level.OFF);
-        PatternLayout layout = new PatternLayout("%d{ISO8601} [%t] %-5p %c %x - %m%n");
-        rootLogger.addAppender(new ConsoleAppender(layout));
-
+        // Log4j configuration removed - now using SimpleLogger
+        // SimpleLogger outputs to System.out/System.err by default
 
         //empty call gets help
         if((args.length != 2 && !args[0].equals("7")) && !(args.length == 3 && args[0].equals("7"))) {
@@ -169,6 +163,14 @@ public class GeneralTestbed {
                                 mg2 = (MixedGraph) pr4.readGraph(args[1]);
                             }
 
+                            //print degrees
+                            System.out.println("Vertex degrees:");
+                            java.util.List<oarlib.vertex.impl.MixedVertex> vertices = new java.util.ArrayList<>(mg2.getVertices());
+                            java.util.Collections.sort(vertices, (v1, v2) -> Integer.compare(v1.getId(), v2.getId()));
+                            for(oarlib.vertex.impl.MixedVertex v : vertices) {
+                                System.out.println("Vertex " + v.getId() + ": degree=" + v.getDegree() + ", inDegree=" + v.getInDegree() + ", outDegree=" + v.getOutDegree());
+                            }
+
                             //solve
                             MixedCPP mcpp2 = new MixedCPP(mg2, "Instance");
                             MCPPSolver_Yaoyuenyong mcppSolver2 = new MCPPSolver_Yaoyuenyong(mcpp2);
@@ -237,15 +239,13 @@ public class GeneralTestbed {
                                 wg2 = (WindyGraph) pr7.readGraph(args[1]);
                             } catch (FormatMismatchException fme) {
                                 System.out.println("Could not read file in Corberan format; attempting to read in OARLib format.");
-                                pr7 = new ProblemReader(ProblemFormat.Name.Zhang_Matrix_WRPP);
+                                pr7 = new ProblemReader(ProblemFormat.Name.OARLib);
                                 wg2 = (WindyGraph) pr7.readGraph(args[1]);
                             }
 
                             //solve
                             WindyRPP wrpp = new WindyRPP(wg2, "Instance");
-                            WRPP_Rui wrppSolver = new WRPP_Rui(wrpp);
-                            wrppSolver.setFilePrefix(args[2]);
-
+                            WRPPSolver_Benavent_H1 wrppSolver = new WRPPSolver_Benavent_H1(wrpp);
                             wrppSolver.trySolve();
                             System.out.println(wrppSolver.printCurrentSol());
                         } catch (Exception e) {

@@ -24,6 +24,7 @@
  */
 package oarlib.route.util;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.Graph;
 import oarlib.core.Link;
 import oarlib.core.Route;
@@ -34,7 +35,6 @@ import oarlib.graph.util.Pair;
 import oarlib.link.impl.Arc;
 import oarlib.route.impl.Tour;
 import oarlib.vertex.impl.DirectedVertex;
-import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -45,7 +45,7 @@ import java.util.*;
  */
 public class SolutionImporter {
 
-    private static Logger LOGGER = Logger.getLogger(RouteExporter.class);
+    private static SimpleLogger LOGGER = SimpleLogger.getLogger(RouteExporter.class);
 
     /**
      * Catch all for importing routes.  To add another format, just add it to the type

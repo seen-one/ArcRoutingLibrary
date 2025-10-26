@@ -23,6 +23,7 @@
  */
 package oarlib.graph.transform.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Factory;
 import oarlib.core.Graph;
@@ -38,7 +39,6 @@ import oarlib.link.impl.Arc;
 import oarlib.link.impl.Edge;
 import oarlib.link.impl.WindyEdge;
 import oarlib.vertex.impl.DirectedVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,7 +50,7 @@ import java.util.HashSet;
  */
 public class EdgeInducedSubgraphTransform<S extends Graph<?, ?>> implements GraphTransformer<S, S> {
 
-    private static final Logger LOGGER = Logger.getLogger(EdgeInducedSubgraphTransform.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(EdgeInducedSubgraphTransform.class);
     S mGraph;
     Factory<S> graphGen;
     HashSet<Integer> mEdges;

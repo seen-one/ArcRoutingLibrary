@@ -1,9 +1,9 @@
 package oarlib.improvements.util;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.Link;
 import oarlib.core.Route;
 import oarlib.core.Vertex;
-import org.apache.log4j.Logger;
 
 /**
  * Container to hold moves frequently made by improvement procedures.
@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
  */
 public class CompactMove<V extends Vertex, E extends Link<V>>  {
 
-    private static final Logger LOGGER = Logger.getLogger(CompactMove.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(CompactMove.class);
     private Route<V,E> mFrom;
     private Route<V,E> mTo;
     private int mFromPos;

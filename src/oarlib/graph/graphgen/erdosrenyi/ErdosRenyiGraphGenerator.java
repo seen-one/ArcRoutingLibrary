@@ -23,15 +23,15 @@
  */
 package oarlib.graph.graphgen.erdosrenyi;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.Graph;
-import org.apache.log4j.Logger;
 
 import java.util.Random;
 
 
 public abstract class ErdosRenyiGraphGenerator<S extends Graph> {
 
-    private static final Logger LOGGER = Logger.getLogger(ErdosRenyiGraphGenerator.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(ErdosRenyiGraphGenerator.class);
 
     private double defaultDensity;
 

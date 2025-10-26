@@ -40,6 +40,7 @@ import oarlib.link.impl.Edge;
 import oarlib.link.impl.WindyEdge;
 import oarlib.problem.impl.ProblemAttributes;
 import oarlib.route.impl.Tour;
+import oarlib.util.SimpleLogger;
 import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.UndirectedVertex;
 import oarlib.vertex.impl.WindyVertex;
@@ -49,6 +50,7 @@ import java.util.*;
 
 public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, WindyEdge, WindyGraph> {
 
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(WRPPSolver_Benavent_H1.class);
     private static final double K = .2; //parameter fixed by computational experiments done by Benavent
     private boolean exportSolToPDF;
 
@@ -59,6 +61,14 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
     public WRPPSolver_Benavent_H1(Problem<WindyVertex, WindyEdge, WindyGraph> instance, boolean exportToPDF) throws IllegalArgumentException {
         super(instance);
         exportSolToPDF = exportToPDF;
+    }
+
+    private static WindyEdge requireEdge(TIntObjectHashMap<WindyEdge> map, int id) {
+        WindyEdge edge = map.get(id);
+        if (edge == null) {
+            throw new IllegalStateException("Missing WindyEdge with id " + id);
+        }
+        return edge;
     }
 
 
@@ -76,7 +86,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
             TIntObjectHashMap<WindyEdge> fullGraphEdges = fullGraph.getInternalEdgeMap();
             WindyEdge temp;
             for (int i = 1; i <= m; i++) {
-                temp = fullGraphEdges.get(i);
+                temp = requireEdge(fullGraphEdges, i);
                 if (L.contains(i)) //add with zero cost
                     fullGraphCopy.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "orig", 0, 0);
                 else
@@ -143,7 +153,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
                 do {
                     next = path[end];
                     nextEdge = edgePath[end];
-                    temp = indexedEdges.get(nextEdge);
+                    temp = requireEdge(indexedEdges, nextEdge);
                     //g.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "to make even", temp.getCost(), temp.getReverseCost(), nextEdge, temp.isRequired());
                     g.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "to make even", temp.getCost(), temp.getReverseCost(), nextEdge, false);
                 } while ((end = next) != curr);
@@ -279,7 +289,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
         TIntObjectHashMap<WindyEdge> indexedWindyEdges = g.getInternalEdgeMap();
         do {
             next = path[curr][end];
-            temp = indexedWindyEdges.get(edgePath[curr][end]);
+            temp = requireEdge(indexedWindyEdges, edgePath[curr][end]);
             ans += temp.getCost() + temp.getReverseCost();
 
         } while ((curr = next) != end);
@@ -295,7 +305,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
         TIntObjectHashMap<WindyEdge> indexedWindyEdges = g.getInternalEdgeMap();
         do {
             next = path[end];
-            temp = indexedWindyEdges.get(edgePath[end]);
+            temp = requireEdge(indexedWindyEdges, edgePath[end]);
             ans += temp.getCost() + temp.getReverseCost();
         } while ((end = next) != start);
         return ans / 2.0;
@@ -310,12 +320,14 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
     protected Collection<Tour> solve() {
         try {
             WindyGraph copy = mInstance.getGraph().getDeepCopy();
+            LOGGER.info("Benavent solve: deep copy built. vertices=" + copy.getVertices().size() + ", edges=" + copy.getEdges().size());
 
             /*
              * Connect up the required components of the graph, just as in WRPP1.
 			 * Match ids in windyReq correspond to edge ids in copy after this.
 			 */
             WindyGraph windyReq = WRPPSolver_Win.connectRequiredComponents(copy);
+            LOGGER.info("Benavent solve: windyReq built. vertices=" + windyReq.getVertices().size() + ", edges=" + windyReq.getEdges().size());
 
             //calculate average cost of edges in Er', so add up (cij + cji)/2, and then divide by num edges of windyReq
             double averageCost = calculateAverageCost(windyReq);
@@ -338,6 +350,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
             DirectedGraph Gdr = buildGdr(copy, E1);
             HashSet<Integer> L = new HashSet<Integer>();
             if (!CommonAlgorithms.isEulerian(Gdr)) {
+                LOGGER.info("Benavent solve: Gdr not Eulerian; proceeding with flow adjustments. vertices=" + Gdr.getVertices().size() + ", edges=" + Gdr.getEdges().size());
 
 				/*
                  * Build Gaux, which is a graph that is the directed graph induced by copy, PLUS
@@ -346,6 +359,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
 				 * artificial ones.
 				 */
                 DirectedGraph Gaux = buildGaux(copy, E1);
+                LOGGER.info("Benavent solve: Gaux built. vertices=" + Gaux.getVertices().size() + ", edges=" + Gaux.getEdges().size());
 
                 //set up the flow problem on Gaux using demands from Gdr
                 TIntObjectHashMap<DirectedVertex> indexedVertices = Gdr.getInternalVertexMap();

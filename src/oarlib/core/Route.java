@@ -23,13 +23,13 @@
  */
 package oarlib.core;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIntHashMap;
 import oarlib.display.GraphDisplay;
 import oarlib.graph.impl.UndirectedGraph;
 import oarlib.link.impl.AsymmetricLink;
 import oarlib.vertex.impl.UndirectedVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,7 +43,7 @@ import java.util.Set;
  */
 public abstract class Route<V extends Vertex, E extends Link<V>> {
 
-    private static final Logger LOGGER = Logger.getLogger(Route.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(Route.class);
     private static int routeIDCounter = 1;
 
     protected int mCost; // cost of the route

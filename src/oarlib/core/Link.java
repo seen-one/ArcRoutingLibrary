@@ -23,9 +23,9 @@
  */
 package oarlib.core;
 
+import oarlib.util.SimpleLogger;
 import oarlib.exceptions.NoCapacitySetException;
 import oarlib.graph.util.Pair;
-import org.apache.log4j.Logger;
 
 /**
  * Link abstraction. Provides most general contract for all Link objects.
@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
  */
 public abstract class Link<V extends Vertex> {
 
-    private static Logger LOGGER = Logger.getLogger(Link.class);
+    private static SimpleLogger LOGGER = SimpleLogger.getLogger(Link.class);
     private static int maxTime = 1000000; //default end time for links that aren't assigned a time window
     private String mLabel; //toString
     private int mId; //while this will help us identify the 'same' link in different graphs (graph copies for instance)

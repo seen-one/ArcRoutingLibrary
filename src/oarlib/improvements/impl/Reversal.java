@@ -23,6 +23,7 @@
  */
 package oarlib.improvements.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import oarlib.core.Graph;
 import oarlib.core.Problem;
@@ -35,7 +36,6 @@ import oarlib.link.impl.WindyEdge;
 import oarlib.problem.impl.ProblemAttributes;
 import oarlib.route.util.RouteExpander;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,7 +45,7 @@ import java.util.Collection;
  */
 public class Reversal extends IntraRouteImprovementProcedure<WindyVertex, WindyEdge, WindyGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(Reversal.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(Reversal.class);
 
     public Reversal(Problem<WindyVertex, WindyEdge, WindyGraph> problem) {
         super(problem);

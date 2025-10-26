@@ -24,20 +24,20 @@
  */
 package oarlib.graph.util;
 
+import oarlib.util.SimpleLogger;
 import oarlib.core.Graph;
 import oarlib.core.Link;
 import oarlib.core.Route;
 import oarlib.core.Vertex;
 import oarlib.link.impl.WindyEdge;
 import oarlib.route.impl.Tour;
-import org.apache.log4j.Logger;
 
 import java.util.Comparator;
 import java.util.List;
 
 public class Utils {
 
-    private static final Logger LOGGER = Logger.getLogger(Utils.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(Utils.class);
 
     /**
      * Computes the shortest distance from a vertex to an edge, given an array of distances

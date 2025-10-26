@@ -23,6 +23,7 @@
  */
 package oarlib.solver.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Graph;
@@ -56,7 +57,6 @@ import oarlib.problem.impl.rpp.WindyRPP;
 import oarlib.route.impl.Tour;
 import oarlib.route.util.RouteExpander;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.*;
@@ -66,7 +66,7 @@ import java.util.*;
  */
 public class MultiWRPPSolver extends MultiVehicleSolver<WindyVertex, WindyEdge, WindyGraph> {
 
-    private static final Logger LOGGER = Logger.getLogger(MultiWRPPSolver.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(MultiWRPPSolver.class);
     private WindyGraph mGraph;
     private String mInstanceName;
     private double bestWeight;

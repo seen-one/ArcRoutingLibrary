@@ -1,5 +1,6 @@
 package oarlib.improvements.util;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntObjectHashMap;
@@ -11,7 +12,6 @@ import oarlib.graph.util.CommonAlgorithms;
 import oarlib.graph.util.Pair;
 import oarlib.link.impl.WindyEdge;
 import oarlib.route.util.RouteExpander;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,7 +21,7 @@ import java.util.Collection;
  */
 public class Mover<V extends Vertex, E extends Link<V>, G extends Graph<V, E>> {
 
-    private static final Logger LOGGER = Logger.getLogger(Mover.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(Mover.class);
     private G mGraph;
     private int[][] dist;
     private int[][] path;

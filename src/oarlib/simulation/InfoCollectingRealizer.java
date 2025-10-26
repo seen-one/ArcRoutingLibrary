@@ -30,7 +30,8 @@ import oarlib.graph.util.Pair;
 import oarlib.link.impl.WindyEdge;
 import oarlib.problem.impl.rpp.RFIDARP;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.xpath.operations.Bool;
+// Stubbed out missing Apache XPath operations import
+// import org.apache.xpath.operations.Bool;
 
 import java.util.*;
 

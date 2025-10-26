@@ -23,6 +23,7 @@
  */
 package oarlib.graph.util;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntObjectHashMap;
@@ -43,13 +44,12 @@ import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.MixedVertex;
 import oarlib.vertex.impl.UndirectedVertex;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.*;
 
 public class CommonAlgorithms {
 
-    private static final Logger LOGGER = Logger.getLogger(CommonAlgorithms.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(CommonAlgorithms.class);
 
     /**
      * Hierholzer's algorithm for determining an Euler tour through an directed Eulerian graph.
@@ -134,8 +134,8 @@ public class CommonAlgorithms {
         simpleCycle.add(start);
         //initialize current position variables
         Map<? extends Vertex, ? extends List<? extends Link<? extends Vertex>>> currNeighbors = start.getNeighbors();
-        Vertex currVertex = start;
-        Vertex prevVertex;
+    Vertex currVertex = start;
+    Vertex prevVertex = null;
         Link<? extends Vertex> currEdge;
         Iterator<Vertex> vertexIter;
         boolean nextStart = true;
@@ -145,7 +145,24 @@ public class CommonAlgorithms {
         while (nextStart) {
             //greedily go until we've come back to start
             do {
-                currEdge = currNeighbors.values().iterator().next().get(0); //grab anybody
+                // Prefer an edge that does not immediately return to the previous vertex
+                currEdge = null;
+                for (Map.Entry<? extends Vertex, ? extends List<? extends Link<? extends Vertex>>> entry : currNeighbors.entrySet()) {
+                    Vertex neigh = entry.getKey();
+                    List<? extends Link<? extends Vertex>> links = entry.getValue();
+                    if (links == null || links.size() == 0) continue;
+                    // if we have a previous vertex, prefer a neighbor that is not the previous vertex
+                    if (prevVertex != null && neigh.getId() == prevVertex.getId()) {
+                        // keep as fallback if nothing else found
+                        if (currEdge == null)
+                            currEdge = links.get(0);
+                    } else {
+                        currEdge = links.get(0);
+                        break;
+                    }
+                }
+                if (currEdge == null) // fallback to original behaviour (shouldn't happen unless map empty)
+                    currEdge = currNeighbors.values().iterator().next().get(0);
                 if (useMatchIds)
                     edgeCycle.add(indexedOrigEdges.get(currEdge.getMatchId()).getMatchId());
                 else
@@ -200,6 +217,104 @@ public class CommonAlgorithms {
             }
         }
         return edgeTrail;
+    }
+
+    private static int resolveEdgeCostFromPredecessor(Graph<? extends Vertex, ? extends Link<? extends Vertex>> g,
+                                                      int fromId,
+                                                      int toId,
+                                                      int recordedEdgeId,
+                                                      boolean treatRecordedIdAsMatchId) {
+
+        TIntObjectHashMap<? extends Vertex> vertices = g.getInternalVertexMap();
+        Vertex from = vertices.get(fromId);
+        Vertex to = vertices.get(toId);
+        if (from == null || to == null) {
+            return Integer.MAX_VALUE;
+        }
+
+        Map<? extends Vertex, ? extends List<? extends Link<? extends Vertex>>> neighborMap = from.getNeighbors();
+        List<? extends Link<? extends Vertex>> candidates = neighborMap.get(to);
+        if (candidates == null || candidates.isEmpty()) {
+            return Integer.MAX_VALUE;
+        }
+
+        if (recordedEdgeId != 0) {
+            for (Link<? extends Vertex> candidate : candidates) {
+                int identifier = treatRecordedIdAsMatchId ? candidate.getMatchId() : candidate.getId();
+                if (identifier == recordedEdgeId) {
+                    return candidate.getCost();
+                }
+            }
+        }
+
+        int min = Integer.MAX_VALUE;
+        for (Link<? extends Vertex> candidate : candidates) {
+            if (candidate.getCost() < min) {
+                min = candidate.getCost();
+            }
+        }
+        return min;
+    }
+
+    private static void evaluateNegativeCycle(Graph<? extends Vertex, ? extends Link<? extends Vertex>> g,
+                                              int suspectVertex,
+                                              int[] path,
+                                              int[] edgePath,
+                                              boolean recordEdgePath,
+                                              boolean edgeIdIsMatchId,
+                                              String logMessage) throws NegativeCycleException {
+
+        if (suspectVertex <= 0) {
+            return;
+        }
+
+        int n = g.getVertices().size();
+        int cycleVertex = suspectVertex;
+
+        for (int i = 0; i < n; i++) {
+            cycleVertex = path[cycleVertex];
+            if (cycleVertex == 0) {
+                return;
+            }
+        }
+
+        TIntArrayList problemPath = new TIntArrayList();
+        TIntArrayList problemEdgePath = new TIntArrayList();
+        long totalCost = 0L;
+        int start = cycleVertex;
+        int end = cycleVertex;
+        int guard = 0;
+
+        do {
+            int prev = path[end];
+            if (prev == 0) {
+                return;
+            }
+
+            problemPath.add(prev);
+
+            int recordedEdgeId = 0;
+            if (recordEdgePath && edgePath != null) {
+                recordedEdgeId = edgePath[end];
+                problemEdgePath.add(recordedEdgeId);
+            }
+
+            int cost = resolveEdgeCostFromPredecessor(g, prev, end, recordedEdgeId, edgeIdIsMatchId);
+            if (cost == Integer.MAX_VALUE) {
+                return;
+            }
+
+            totalCost += cost;
+            end = prev;
+            guard++;
+            if (guard > n + 1) {
+                return;
+            }
+        } while (end != start);
+
+        if (totalCost < 0L) {
+            throw new NegativeCycleException(cycleVertex, problemPath.toNativeArray(), problemEdgePath.toNativeArray(), logMessage);
+        }
     }
 
     /**
@@ -820,11 +935,12 @@ public class CommonAlgorithms {
         Vertex u;
         int min, uid, vid, alt;
         int minid = 0;
-        int counter = 0;
-        int lim = n * g.getEdges().size();
+        int[] relaxCount = new int[n + 1];
         boolean searchForNegativeCycle = false;
+        int suspectVertex = -1;
 
         //business logic
+        outerLoop:
         while (!activeVertices.isEmpty()) {
             u = indexedVertices.get(activeVertices.remove()); // grab an active vertex
             uid = u.getId(); //its id
@@ -854,62 +970,22 @@ public class CommonAlgorithms {
                     path[vid] = uid;
                     if (recordEdgePath)
                         edgePath[vid] = minid;
+                    relaxCount[vid]++;
+                    if (relaxCount[vid] >= n) {
+                        searchForNegativeCycle = true;
+                        suspectVertex = vid;
+                        break outerLoop;
+                    }
                     if (!active[vid]) {
                         active[vid] = true;
                         activeVertices.add(vid);
                     }
                 }
             }
-            counter++;
-
-            //if we've relaxed more than ~ n times, that means we've got a negative cycle somewhere
-            if (counter > lim) {
-                searchForNegativeCycle = true;
-                break;
-            }
         }
 
         if (searchForNegativeCycle) {
-            //let's construct it
-            int p, q, cost;
-            boolean continueSearching;
-            //check for negative cycles
-            for (Link<? extends Vertex> l : g.getEdges()) {
-
-                //there has to be at least one link with negative cost in a negative cycle
-                if (l.getCost() > 0)
-                    continue;
-
-                continueSearching = false;
-
-                p = l.getEndpoints().getFirst().getId();
-                q = l.getEndpoints().getSecond().getId();
-
-
-                TIntArrayList problemPath = new TIntArrayList();
-                TIntArrayList problemEdgePath = new TIntArrayList();
-
-                int start = q;
-                int end = q;
-                int next;
-                counter = 0;
-                do {
-                    next = path[end];
-                    problemPath.add(next);
-                    if (recordEdgePath)
-                        problemEdgePath.add(edgePath[end]);
-                    counter++;
-                    if (counter > n) {
-                        continueSearching = true;
-                        break;
-                    }
-                } while ((end = next) != start);
-
-                if (!continueSearching) {
-                    LOGGER.error("This graph has a negative cycle.  It is being logged.");
-                    throw new NegativeCycleException(q, problemPath.toNativeArray(), problemEdgePath.toNativeArray(), "This graph contains a negative cycle.");
-                }
-            }
+            evaluateNegativeCycle(g, suspectVertex, path, edgePath, recordEdgePath, false, "This graph has a negative cycle.  It is being logged.");
         }
     }
 
@@ -962,9 +1038,10 @@ public class CommonAlgorithms {
         Vertex u;
         int min, uid, vid, alt;
         int minid = 0;
-        int counter = 0;
-        int lim = n * virtual.getEdges().size();
+        int[] relaxCount = new int[n + 1];
         boolean searchForNegativeCycle = false;
+        int suspectVertex = -1;
+        outerLoop:
         while (!activeVertices.isEmpty()) {
             u = indexedVertices.get(activeVertices.remove());
             uid = u.getId();
@@ -986,58 +1063,22 @@ public class CommonAlgorithms {
                     path[vid] = uid;
                     if (recordEdgePath)
                         edgePath[vid] = minid;
+                    relaxCount[vid]++;
+                    if (relaxCount[vid] >= n) {
+                        searchForNegativeCycle = true;
+                        suspectVertex = vid;
+                        break outerLoop;
+                    }
                     if (!active[vid]) {
                         active[vid] = true;
                         activeVertices.add(vid);
                     }
                 }
             }
-            counter++;
-            if (counter > lim) {
-                searchForNegativeCycle = true;
-                break;
-            }
         }
 
         if (searchForNegativeCycle) {
-            int p, q, cost;
-            boolean continueSearching;
-            //check for negative cycles
-            for (Link<? extends Vertex> l : virtual.getEdges()) {
-                if (l.getCost() > 0)
-                    continue;
-
-                continueSearching = false;
-
-                p = l.getEndpoints().getFirst().getId();
-                q = l.getEndpoints().getSecond().getId();
-
-
-                TIntArrayList problemPath = new TIntArrayList();
-                TIntArrayList problemEdgePath = new TIntArrayList();
-
-                int start = q;
-                int end = q;
-                int next;
-                counter = 0;
-                do {
-                    next = path[end];
-                    problemPath.add(next);
-                    if (recordEdgePath)
-                        problemEdgePath.add(edgePath[end]);
-                    counter++;
-                    if (counter > n) {
-                        continueSearching = true;
-                        break;
-                    }
-                } while ((end = next) != start);
-
-                if (!continueSearching) {
-                    LOGGER.error("This graph contains a negative cycle.  It is being logged.");
-                    throw new NegativeCycleException(q, problemPath.toNativeArray(), problemEdgePath.toNativeArray(), "This graph contains a negative cycle.");
-                }
-
-            }
+            evaluateNegativeCycle(virtual, suspectVertex, path, edgePath, recordEdgePath, true, "This graph contains a negative cycle.  It is being logged.");
         }
 
     }
@@ -1108,9 +1149,10 @@ public class CommonAlgorithms {
         Vertex u;
         int min, uid, vid, alt;
         int minid = 0;
-        int counter = 0;
-        int lim = n * g.getEdges().size();
+        int[] relaxCount = new int[n + 1];
         boolean searchForNegativeCycle = false;
+        int suspectVertex = -1;
+        outerLoop:
         while (!activeVertices.isEmpty()) {
             u = indexedVertices.get(activeVertices.remove());
             uid = u.getId();
@@ -1132,6 +1174,12 @@ public class CommonAlgorithms {
                     path[vid] = uid;
                     if (recordEdgePath)
                         edgePath[vid] = minid;
+                    relaxCount[vid]++;
+                    if (relaxCount[vid] >= n) {
+                        searchForNegativeCycle = true;
+                        suspectVertex = vid;
+                        break outerLoop;
+                    }
                     if (!active[vid]) {
                         active[vid] = true;
                         if (!labeled[vid]) {
@@ -1142,51 +1190,10 @@ public class CommonAlgorithms {
                     }
                 }
             }
-            counter++;
-            if (counter > lim) {
-                searchForNegativeCycle = true;
-                break;
-            }
         }
 
         if (searchForNegativeCycle) {
-            int p, q, cost;
-            boolean continueSearching;
-            //check for negative cycles
-            for (Link<? extends Vertex> l : g.getEdges()) {
-                if (l.getCost() > 0)
-                    continue;
-
-                continueSearching = false;
-
-                p = l.getEndpoints().getFirst().getId();
-                q = l.getEndpoints().getSecond().getId();
-
-
-                TIntArrayList problemPath = new TIntArrayList();
-                TIntArrayList problemEdgePath = new TIntArrayList();
-
-                int start = q;
-                int end = q;
-                int next;
-                counter = 0;
-                do {
-                    next = path[end];
-                    problemPath.add(next);
-                    if (recordEdgePath)
-                        problemEdgePath.add(edgePath[end]);
-                    counter++;
-                    if (counter > n) {
-                        continueSearching = true;
-                        break;
-                    }
-                } while ((end = next) != start);
-
-                if (!continueSearching) {
-                    LOGGER.error("This graph contains a negative cycle.  It is being logged.");
-                    throw new NegativeCycleException(q, problemPath.toNativeArray(), problemEdgePath.toNativeArray(), "This graph contains a negative cycle.");
-                }
-            }
+            evaluateNegativeCycle(g, suspectVertex, path, edgePath, recordEdgePath, false, "This graph contains a negative cycle.  It is being logged.");
         }
     }
 
@@ -1239,9 +1246,10 @@ public class CommonAlgorithms {
         Vertex u;
         int min, uid, vid, alt;
         int minid = 0;
-        int counter = 0;
-        int lim = n * virtual.getEdges().size();
+        int[] relaxCount = new int[n + 1];
         boolean searchForNegativeCycle = false;
+        int suspectVertex = -1;
+        outerLoop:
         while (!activeVertices.isEmpty()) {
             u = indexedVertices.get(activeVertices.remove());
             uid = u.getId();
@@ -1263,6 +1271,12 @@ public class CommonAlgorithms {
                     path[vid] = uid;
                     if (recordEdgePath)
                         edgePath[vid] = minid;
+                    relaxCount[vid]++;
+                    if (relaxCount[vid] >= n) {
+                        searchForNegativeCycle = true;
+                        suspectVertex = vid;
+                        break outerLoop;
+                    }
                     if (!active[vid]) {
                         active[vid] = true;
                         if (!labeled[vid]) {
@@ -1273,51 +1287,10 @@ public class CommonAlgorithms {
                     }
                 }
             }
-            counter++;
-            if (counter > lim) {
-                searchForNegativeCycle = true;
-                break;
-            }
         }
 
         if (searchForNegativeCycle) {
-            int p, q, cost;
-            boolean continueSearching;
-            //check for negative cycles
-            for (Link<? extends Vertex> l : virtual.getEdges()) {
-                if (l.getCost() > 0)
-                    continue;
-
-                continueSearching = false;
-
-                p = l.getEndpoints().getFirst().getId();
-                q = l.getEndpoints().getSecond().getId();
-
-
-                TIntArrayList problemPath = new TIntArrayList();
-                TIntArrayList problemEdgePath = new TIntArrayList();
-
-                int start = q;
-                int end = q;
-                int next;
-                counter = 0;
-                do {
-                    next = path[end];
-                    problemPath.add(next);
-                    if (recordEdgePath)
-                        problemEdgePath.add(edgePath[end]);
-                    counter++;
-                    if (counter > n) {
-                        continueSearching = true;
-                        break;
-                    }
-                } while ((end = next) != start);
-
-                if (!continueSearching) {
-                    LOGGER.error("This graph contains a negative cycle. It is being logged.");
-                    throw new NegativeCycleException(q, problemPath.toNativeArray(), problemEdgePath.toNativeArray(), "This graph contains a negative cycle.");
-                }
-            }
+            evaluateNegativeCycle(virtual, suspectVertex, path, edgePath, recordEdgePath, true, "This graph contains a negative cycle. It is being logged.");
         }
 
     }
@@ -1385,9 +1358,10 @@ public class CommonAlgorithms {
         Vertex u;
         int min, uid, vid, alt;
         int minid = 0;
-        int counter = 0;
-        int lim = n * g.getEdges().size();
+        int[] relaxCount = new int[n + 1];
         boolean searchForNegativeCycles = false;
+        int suspectVertex = -1;
+        outerLoop:
         while (!activeVertices.isEmpty()) {
             u = indexedVertices.get(activeVertices.remove());
             uid = u.getId();
@@ -1409,6 +1383,12 @@ public class CommonAlgorithms {
                     path[vid] = uid;
                     if (recordEdgePath)
                         edgePath[vid] = minid;
+                    relaxCount[vid]++;
+                    if (relaxCount[vid] >= n) {
+                        searchForNegativeCycles = true;
+                        suspectVertex = vid;
+                        break outerLoop;
+                    }
                     if (!active[vid]) {
                         active[vid] = true;
 
@@ -1421,52 +1401,10 @@ public class CommonAlgorithms {
                     }
                 }
             }
-            counter++;
-            if (counter > lim) {
-                searchForNegativeCycles = true;
-                break;
-            }
         }
 
         if (searchForNegativeCycles) {
-            int p, q;
-            boolean continueSearching;
-            //check for negative cycles
-            for (Link<? extends Vertex> l : g.getEdges()) {
-                if (l.getCost() > 0)
-                    continue;
-
-                continueSearching = false;
-
-                p = l.getEndpoints().getFirst().getId();
-                q = l.getEndpoints().getSecond().getId();
-
-
-                TIntArrayList problemPath = new TIntArrayList();
-                TIntArrayList problemEdgePath = new TIntArrayList();
-
-                int start = q;
-                int end = q;
-                int next;
-                counter = 0;
-                do {
-                    next = path[end];
-                    problemPath.add(next);
-                    if (recordEdgePath)
-                        problemEdgePath.add(edgePath[end]);
-                    counter++;
-                    if (counter > n) {
-                        continueSearching = true;
-                        break;
-                    }
-                } while ((end = next) != start);
-
-                if (!continueSearching) {
-                    LOGGER.error("This graph contains a negative cycle.  It is being logged.");
-                    throw new NegativeCycleException(q, problemPath.toNativeArray(), problemEdgePath.toNativeArray(), "This graph contains a negative cycle.");
-                }
-
-            }
+            evaluateNegativeCycle(g, suspectVertex, path, edgePath, recordEdgePath, false, "This graph contains a negative cycle.  It is being logged.");
         }
     }
 
@@ -1519,9 +1457,10 @@ public class CommonAlgorithms {
         Vertex u;
         int min, uid, vid, alt;
         int minid = 0;
-        int counter = 0;
-        int lim = n * g.getEdges().size();
+        int[] relaxCount = new int[n + 1];
         boolean searchForNegativeCycles = false;
+        int suspectVertex = -1;
+        outerLoop:
         while (!activeVertices.isEmpty()) {
             u = indexedVertices.get(activeVertices.remove());
             uid = u.getId();
@@ -1543,6 +1482,12 @@ public class CommonAlgorithms {
                     path[vid] = uid;
                     if (recordEdgePath)
                         edgePath[vid] = minid;
+                    relaxCount[vid]++;
+                    if (relaxCount[vid] >= n) {
+                        searchForNegativeCycles = true;
+                        suspectVertex = vid;
+                        break outerLoop;
+                    }
                     if (!active[vid]) {
                         active[vid] = true;
 
@@ -1555,51 +1500,10 @@ public class CommonAlgorithms {
                     }
                 }
             }
-            counter++;
-            if (counter > lim) {
-                searchForNegativeCycles = true;
-                break;
-            }
         }
 
         if (searchForNegativeCycles) {
-            int p, q, cost;
-            boolean continueSearching;
-            //check for negative cycles
-            for (Link<? extends Vertex> l : g.getEdges()) {
-                if (l.getCost() > 0)
-                    continue;
-
-                continueSearching = false;
-
-                p = l.getEndpoints().getFirst().getId();
-                q = l.getEndpoints().getSecond().getId();
-
-
-                TIntArrayList problemPath = new TIntArrayList();
-                TIntArrayList problemEdgePath = new TIntArrayList();
-
-                int start = q;
-                int end = q;
-                int next;
-                counter = 0;
-                do {
-                    next = path[end];
-                    problemPath.add(next);
-                    if (recordEdgePath)
-                        problemEdgePath.add(edgePath[end]);
-                    counter++;
-                    if (counter > n) {
-                        continueSearching = true;
-                        break;
-                    }
-                } while ((end = next) != start);
-
-                if (!continueSearching) {
-                    LOGGER.error("This graph contains a negative cycle.  It is being logged.");
-                    throw new NegativeCycleException(q, problemPath.toNativeArray(), problemEdgePath.toNativeArray(), "This graph contains a negative cycle.");
-                }
-            }
+            evaluateNegativeCycle(virtual, suspectVertex, path, edgePath, recordEdgePath, true, "This graph contains a negative cycle.  It is being logged.");
         }
     }
 
@@ -1927,52 +1831,65 @@ public class CommonAlgorithms {
             return;
         }
 
-        PriorityQueue<Pair<Integer>> pq = new PriorityQueue<Pair<Integer>>(n, new DijkstrasComparator()); //first in the pair is the id, second is the weight; sorted by weight.
+    PriorityQueue<Pair<Integer>> pq = new PriorityQueue<Pair<Integer>>(n, new DijkstrasComparator());
+    boolean[] visited = new boolean[n + 1];
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        Arrays.fill(path, -1);
+        if (recordEdgePath) {
+            Arrays.fill(edgePath, -1);
+        }
         dist[sourceId] = 0;
         path[sourceId] = -1;
-        for (int i = 1; i <= n; i++) {
-            if (i != sourceId) {
-                dist[i] = Integer.MAX_VALUE;
-                path[i] = -1;
-                if (recordEdgePath)
-                    edgePath[i] = -1;
-            }
-            pq.add(new Pair<Integer>(i, dist[i]));
-        }
+        pq.add(new Pair<Integer>(sourceId, 0));
 
-        DirectedVertex u;
-        Pair<Integer> temp;
-        int min, alt, uid, vid, minid;
-        minid = Integer.MAX_VALUE;
         TIntObjectHashMap<DirectedVertex> indexedVertices = virtual.getInternalVertexMap();
-        //now actually do the walk
+
         while (!pq.isEmpty()) {
-            temp = pq.poll();
-            u = indexedVertices.get(temp.getFirst());
-            uid = u.getId();
-            if (dist[uid] == Integer.MAX_VALUE)
-                continue; //we got to the point where it's disconnected; don't add to max integer, and cause loop around
+            Pair<Integer> temp = pq.poll();
+            int uid = temp.getFirst();
+            int currentDist = temp.getSecond();
+            if (currentDist > dist[uid]) {
+                continue; // stale entry
+            }
+            if (currentDist == Integer.MAX_VALUE) {
+                continue; // disconnected vertex
+            }
+
+            if (visited[uid]) {
+                continue;
+            }
+            visited[uid] = true;
+
+            DirectedVertex u = indexedVertices.get(uid);
+            if (u == null) {
+                continue;
+            }
+
             for (DirectedVertex v : u.getNeighbors().keySet()) {
                 List<Arc> l = u.getNeighbors().get(v);
-                min = Integer.MAX_VALUE;
-                vid = v.getId();
-                if (!pq.contains(new Pair<Integer>(vid, dist[vid])))
-                    continue;
+                int min = Integer.MAX_VALUE;
+                int minid = Integer.MAX_VALUE;
                 for (Arc link : l) {
                     if (link.getCost() < min) {
                         min = link.getCost();
                         minid = link.getMatchId();
                     }
                 }
-                //don't go past max integer, that's bad
-                alt = dist[uid] + min;
+                if (min == Integer.MAX_VALUE) {
+                    continue;
+                }
+
+                int vid = v.getId();
+                if (visited[vid]) {
+                    continue;
+                }
+                int alt = currentDist + min;
                 if (alt < dist[vid]) {
-                    //found a better path
-                    pq.remove(new Pair<Integer>(vid, dist[vid]));
                     dist[vid] = alt;
                     path[vid] = uid;
-                    if (recordEdgePath)
+                    if (recordEdgePath) {
                         edgePath[vid] = minid;
+                    }
                     pq.add(new Pair<Integer>(vid, dist[vid]));
                 }
             }

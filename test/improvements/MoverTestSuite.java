@@ -1,5 +1,6 @@
 package improvements;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Route;
 import oarlib.graph.impl.WindyGraph;
@@ -8,7 +9,6 @@ import oarlib.improvements.util.Mover;
 import oarlib.link.impl.WindyEdge;
 import oarlib.route.impl.Tour;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.BasicConfigurator;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -23,7 +23,7 @@ public class MoverTestSuite {
     @Test
     public void testMoverEvalCost() {
 
-        BasicConfigurator.configure();
+        // BasicConfigurator no longer needed - SimpleLogger is ready to use
 
         try {
             WindyGraph testGraph = new WindyGraph(5);//v graph
@@ -70,8 +70,7 @@ public class MoverTestSuite {
     @Test
     public void testMakeMove() {
 
-
-        BasicConfigurator.configure();
+        // BasicConfigurator no longer needed - SimpleLogger is ready to use
 
         try {
             WindyGraph testGraph = new WindyGraph(5);//v graph

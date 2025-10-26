@@ -24,6 +24,7 @@
  */
 package oarlib.problem.impl.rpp;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import oarlib.core.Graph;
 import oarlib.core.Route;
@@ -34,7 +35,6 @@ import oarlib.problem.impl.ProblemAttributes;
 import oarlib.problem.impl.RuralPostmanProblem;
 import oarlib.route.impl.ZigZagTour;
 import oarlib.vertex.impl.ZigZagVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,7 +44,7 @@ import java.util.Collection;
  */
 public class WindyRPPZZTW extends RuralPostmanProblem<ZigZagVertex, ZigZagLink, ZigZagGraph> {
 
-    private static Logger LOGGER = Logger.getLogger(WindyRPPZZTW.class);
+    private static SimpleLogger LOGGER = SimpleLogger.getLogger(WindyRPPZZTW.class);
 
     public WindyRPPZZTW(ZigZagGraph graph, String name) {
         super(graph, name, new SumMetric());

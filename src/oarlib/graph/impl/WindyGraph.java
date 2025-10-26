@@ -23,6 +23,7 @@
  */
 package oarlib.graph.impl;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntObjectHashMap;
@@ -32,7 +33,6 @@ import oarlib.exceptions.InvalidEndpointsException;
 import oarlib.graph.util.Pair;
 import oarlib.link.impl.WindyEdge;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +40,7 @@ import java.util.List;
 
 public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
 
-    private static final Logger LOGGER = Logger.getLogger(WindyGraph.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(WindyGraph.class);
 
     //region Constructors
     public WindyGraph() {
@@ -186,9 +186,13 @@ public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
             TIntObjectHashMap<WindyVertex> indexedVertices = this.getInternalVertexMap();
             WindyVertex temp, temp2;
             int n = this.getVertices().size();
+            LOGGER.info("WindyGraph.getDeepCopy: vertices=" + n + ", edges=" + indexedEdges.size() + ", vertexKeys=" + indexedVertices.size());
 
             for (int i = 1; i <= n; i++) {
                 temp2 = indexedVertices.get(i);
+                if (temp2 == null) {
+                    throw new IllegalStateException("WindyGraph deep copy missing vertex id " + i + " of " + n);
+                }
                 temp = new WindyVertex(temp2.getLabel()); //the new guy
                 temp.setCoordinates(temp2.getX(), temp2.getY());
                 if (temp2.isDemandSet())
@@ -200,7 +204,11 @@ public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
             forSortingE.sort();
             int m = forSortingE.size();
             for (int i = 0; i < m; i++) {
-                e = indexedEdges.get(forSortingE.get(i));
+                int edgeId = forSortingE.get(i);
+                e = indexedEdges.get(edgeId);
+                if (e == null) {
+                    throw new IllegalStateException("WindyGraph deep copy missing edge id " + edgeId + " (index " + i + " of " + m + ")");
+                }
                 e2 = new WindyEdge(e.getLabel(), new Pair<WindyVertex>(ans.getVertex(e.getFirstEndpointId()), ans.getVertex(e.getSecondEndpointId())), e.getCost(), e.getReverseCost());
                 e2.setMatchId(e.getId());
                 e2.setRequired(e.isRequired());

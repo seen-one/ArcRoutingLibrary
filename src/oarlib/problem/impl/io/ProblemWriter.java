@@ -23,6 +23,7 @@
  */
 package oarlib.problem.impl.io;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.core.Graph;
 import oarlib.core.Link;
@@ -43,7 +44,6 @@ import oarlib.problem.impl.ProblemAttributes;
 import oarlib.problem.impl.rpp.WindyRPP;
 import oarlib.problem.impl.rpp.WindyRPPZZTW;
 import oarlib.vertex.impl.UndirectedVertex;
-import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -59,7 +59,7 @@ import java.util.Iterator;
  */
 public class ProblemWriter {
 
-    private static final Logger LOGGER = Logger.getLogger(ProblemWriter.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(ProblemWriter.class);
 
     private ProblemFormat.Name mFormat;
 

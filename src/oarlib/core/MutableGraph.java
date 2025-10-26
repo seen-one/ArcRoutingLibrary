@@ -23,6 +23,7 @@
  */
 package oarlib.core;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntObjectHashMap;
 import oarlib.exceptions.InvalidEndpointsException;
 
@@ -37,7 +38,7 @@ import java.util.HashSet;
  */
 public abstract class MutableGraph<V extends Vertex, E extends Link<V>> extends Graph<V, E> {
 
-    private static final org.apache.log4j.Logger LOGGER = org.apache.log4j.Logger.getLogger(MutableGraph.class);
+    private static final oarlib.util.SimpleLogger LOGGER = oarlib.util.SimpleLogger.getLogger(MutableGraph.class);
     private HashSet<V> mVertices;
     private HashSet<E> mEdges;
     private TIntObjectHashMap<V> mInternalVertexMap; //indexed by ids

@@ -1,5 +1,6 @@
 package oarlib.improvements.util;
 
+import oarlib.util.SimpleLogger;
 import gnu.trove.TIntArrayList;
 import oarlib.core.Graph;
 import oarlib.core.Link;
@@ -14,7 +15,6 @@ import oarlib.route.impl.Tour;
 import oarlib.route.util.RouteExpander;
 import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.WindyVertex;
-import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -23,7 +23,7 @@ import java.util.*;
  */
 public class Utils {
 
-    private static final Logger LOGGER = Logger.getLogger(Utils.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(Utils.class);
     /**
      * fetches the id of the longest route in the initial solution passed in.
      *

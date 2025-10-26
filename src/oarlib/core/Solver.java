@@ -25,9 +25,9 @@
 
 package oarlib.core;
 
+import oarlib.util.SimpleLogger;
 import oarlib.exceptions.GraphInfeasibleException;
 import oarlib.problem.impl.ProblemAttributes;
-import org.apache.log4j.Logger;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,7 +37,7 @@ import java.util.HashMap;
  */
 public abstract class Solver<V extends Vertex, E extends Link<V>, G extends Graph<V, E>> {
 
-    private static final Logger LOGGER = Logger.getLogger(SingleVehicleSolver.class);
+    private static final SimpleLogger LOGGER = SimpleLogger.getLogger(SingleVehicleSolver.class);
 
     protected Problem<V, E, G> mInstance;
 
