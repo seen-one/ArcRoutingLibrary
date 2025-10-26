@@ -168,10 +168,10 @@
                   <classFiles>${project.build.directory}/teavm-classes</classFiles>
                   <targetDirectory>${project.build.directory}/teavm</targetDirectory>
                   <targetFileName>teavm.js</targetFileName>
-                  <minifying>false</minifying>
+                  <minifying>true</minifying>
                   <mainPageIncluded>true</mainPageIncluded>
-                  <debugInformationGenerated>true</debugInformationGenerated>
-                  <sourceMapsGenerated>true</sourceMapsGenerated>
+                  <debugInformationGenerated>false</debugInformationGenerated>
+                  <sourceMapsGenerated>false</sourceMapsGenerated>
                 </configuration>
               </execution>
             </executions>
