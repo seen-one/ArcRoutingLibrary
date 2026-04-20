@@ -71,6 +71,52 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
         return edge;
     }
 
+    private static ArrayList<Integer> sortedIds(Collection<Integer> ids) {
+        ArrayList<Integer> ans = new ArrayList<Integer>(ids);
+        Collections.sort(ans);
+        return ans;
+    }
+
+    private static ArrayList<UndirectedVertex> sortedUndirectedVertices(Collection<UndirectedVertex> vertices) {
+        ArrayList<UndirectedVertex> ans = new ArrayList<UndirectedVertex>(vertices);
+        Collections.sort(ans, new Comparator<UndirectedVertex>() {
+            public int compare(UndirectedVertex first, UndirectedVertex second) {
+                return first.getId() - second.getId();
+            }
+        });
+        return ans;
+    }
+
+    private static ArrayList<Pair<Integer>> sortedPairKeys(Collection<Pair<Integer>> keys) {
+        ArrayList<Pair<Integer>> ans = new ArrayList<Pair<Integer>>(keys);
+        Collections.sort(ans, new Comparator<Pair<Integer>>() {
+            public int compare(Pair<Integer> first, Pair<Integer> second) {
+                if (!first.getFirst().equals(second.getFirst())) {
+                    return first.getFirst() - second.getFirst();
+                }
+                return first.getSecond() - second.getSecond();
+            }
+        });
+        return ans;
+    }
+
+    private static ArrayList<Pair<UndirectedVertex>> sortedMatchingPairs(Set<Pair<UndirectedVertex>> pairs) {
+        ArrayList<Pair<UndirectedVertex>> ans = new ArrayList<Pair<UndirectedVertex>>(pairs);
+        Collections.sort(ans, new Comparator<Pair<UndirectedVertex>>() {
+            public int compare(Pair<UndirectedVertex> first, Pair<UndirectedVertex> second) {
+                int firstLow = Math.min(first.getFirst().getId(), first.getSecond().getId());
+                int firstHigh = Math.max(first.getFirst().getId(), first.getSecond().getId());
+                int secondLow = Math.min(second.getFirst().getId(), second.getSecond().getId());
+                int secondHigh = Math.max(second.getFirst().getId(), second.getSecond().getId());
+                if (firstLow != secondLow) {
+                    return firstLow - secondLow;
+                }
+                return firstHigh - secondHigh;
+            }
+        });
+        return ans;
+    }
+
 
     public static void eulerAugment(WindyGraph fullGraph, WindyGraph g, HashSet<Integer> L) {
 
@@ -90,10 +136,10 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
                 if (L.contains(i)) //add with zero cost
                     fullGraphCopy.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "orig", 0, 0);
                 else
-                    fullGraphCopy.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "orig", temp.getCost(), temp.getReverseCost());
+                    fullGraphCopy.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "orig", temp.getCostLong(), temp.getReverseCostLong());
             }
 
-            int[] dist = new int[n + 1];
+            long[] dist = new long[n + 1];
             int[] path = new int[n + 1];
             int[] edgePath = new int[n + 1];
 
@@ -101,14 +147,16 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
             UndirectedGraph matchingGraph = new UndirectedGraph();
 
             //setup our graph of unbalanced vertices
-            for (WindyVertex v : g.getVertices()) {
+            TIntObjectHashMap<WindyVertex> gVertices = g.getInternalVertexMap();
+            for (int i = 1; i <= n; i++) {
+                WindyVertex v = gVertices.get(i);
                 if (v.getDegree() % 2 == 1) {
                     matchingGraph.addVertex(new UndirectedVertex("oddVertex"), v.getId());
                 }
             }
 
             //connect with least cost edges
-            Collection<UndirectedVertex> oddVertices = matchingGraph.getVertices();
+            Collection<UndirectedVertex> oddVertices = sortedUndirectedVertices(matchingGraph.getVertices());
             HashMap<Pair<Integer>, Edge> traverseIj = new HashMap<Pair<Integer>, Edge>(); //key is (i,j) where i < j, and value is true if the shortest average path cost is i to j, false if it's j to i
             double costCandidate;
             Pair<Integer> candidateKey;
@@ -122,15 +170,16 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
                     costCandidate = calculateAveragePathCost(fullGraphCopy, v.getMatchId(), v2.getMatchId(), path, edgePath);
                     candidateKey = new Pair<Integer>(v2.getId(), v.getId());
 
-                    if (!traverseIj.containsKey(candidateKey) || costCandidate < traverseIj.get(candidateKey).getCost()) {
+                    if (!traverseIj.containsKey(candidateKey) || costCandidate < traverseIj.get(candidateKey).getCostLong()) {
                         traverseIj.remove(candidateKey);
-                        traverseIj.put(new Pair<Integer>(v.getId(), v2.getId()), new Edge("matchingEdge", new Pair<UndirectedVertex>(v, v2), (int) (2 * costCandidate)));
+                        traverseIj.put(new Pair<Integer>(v.getId(), v2.getId()), new Edge("matchingEdge", new Pair<UndirectedVertex>(v, v2), (long) (2 * costCandidate)));
                     }
                 }
             }
 
-            for (Edge e : traverseIj.values())
-                matchingGraph.addEdge(e);
+            for (Pair<Integer> key : sortedPairKeys(traverseIj.keySet())) {
+                matchingGraph.addEdge(traverseIj.get(key));
+            }
 
 
             Set<Pair<UndirectedVertex>> matchingSolution = CommonAlgorithms.minCostMatching(matchingGraph);
@@ -138,7 +187,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
             //now add the corresponding edges back in the windy graph
             int curr, end, next, nextEdge;
             TIntObjectHashMap<WindyEdge> indexedEdges = fullGraph.getInternalEdgeMap();
-            for (Pair<UndirectedVertex> p : matchingSolution) {
+            for (Pair<UndirectedVertex> p : sortedMatchingPairs(matchingSolution)) {
                 //minCostMatching doesn't discriminate between 1 - 2 and 2 - 1 so we need to
                 if (traverseIj.containsKey(new Pair<Integer>(p.getFirst().getId(), p.getSecond().getId()))) {
                     curr = p.getFirst().getMatchId();
@@ -155,7 +204,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
                     nextEdge = edgePath[end];
                     temp = requireEdge(indexedEdges, nextEdge);
                     //g.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "to make even", temp.getCost(), temp.getReverseCost(), nextEdge, temp.isRequired());
-                    g.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "to make even", temp.getCost(), temp.getReverseCost(), nextEdge, false);
+                    g.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "to make even", temp.getCostLong(), temp.getReverseCostLong(), nextEdge, false);
                 } while ((end = next) != curr);
             }
         } catch (Exception e) {
@@ -194,12 +243,12 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
             TIntObjectHashMap<WindyEdge> indexedEdges = g.getInternalEdgeMap();
             WindyEdge temp;
             //add an arc in the cheaper direction of the unbalanced edges
-            for (Integer id : unbalancedEdges) {
+            for (Integer id : sortedIds(unbalancedEdges)) {
                 temp = indexedEdges.get(id);
-                if (temp.getCost() < temp.getReverseCost()) {
-                    ans.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "Gdr", temp.getCost());
+                if (temp.getCostLong() < temp.getReverseCostLong()) {
+                    ans.addEdge(temp.getEndpoints().getFirst().getId(), temp.getEndpoints().getSecond().getId(), "Gdr", temp.getCostLong());
                 } else {
-                    ans.addEdge(temp.getEndpoints().getSecond().getId(), temp.getEndpoints().getFirst().getId(), "Gdr", temp.getReverseCost());
+                    ans.addEdge(temp.getEndpoints().getSecond().getId(), temp.getEndpoints().getFirst().getId(), "Gdr", temp.getReverseCostLong());
                 }
             }
             return ans;
@@ -218,32 +267,35 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
             }
 
             //put in an arc for each of the edges in g
-            int i, j, tempCost;
-            for (WindyEdge e : fullGraph.getEdges()) {
+            int i, j;
+            long tempCost;
+            int m = fullGraph.getEdges().size();
+            TIntObjectHashMap<WindyEdge> indexedEdges = fullGraph.getInternalEdgeMap();
+            for (int edgeId = 1; edgeId <= m; edgeId++) {
+                WindyEdge e = requireEdge(indexedEdges, edgeId);
                 i = e.getEndpoints().getFirst().getId();
                 j = e.getEndpoints().getSecond().getId();
                 //double cost so we can keep everything integer
-                ans.addEdge(i, j, "Gaux", 2 * e.getCost(), e.getId());
-                ans.addEdge(j, i, "Gaux", 2 * e.getReverseCost(), e.getId());
+                ans.addEdge(i, j, "Gaux", 2L * e.getCostLong(), e.getId());
+                ans.addEdge(j, i, "Gaux", 2L * e.getReverseCostLong(), e.getId());
             }
 
             WindyEdge temp;
-            TIntObjectHashMap<WindyEdge> indexedEdges = fullGraph.getInternalEdgeMap();
             TIntObjectHashMap<DirectedVertex> indexedVertices = ans.getInternalVertexMap();
             Arc toAdd;
             //add an arc in the high cost direction for each of the unbalanced edges
-            for (Integer id : unbalancedEdges) {
+            for (Integer id : sortedIds(unbalancedEdges)) {
                 temp = indexedEdges.get(id);
                 i = temp.getEndpoints().getFirst().getId();
                 j = temp.getEndpoints().getSecond().getId();
 
-                if (temp.getCost() < temp.getReverseCost()) {
-                    tempCost = temp.getReverseCost() - temp.getCost();
+                if (temp.getCostLong() < temp.getReverseCostLong()) {
+                    tempCost = temp.getReverseCostLong() - temp.getCostLong();
                     toAdd = new Arc("Gaux", new Pair<DirectedVertex>(indexedVertices.get(j), indexedVertices.get(i)), tempCost);
                     toAdd.setCapacity(2);
                     ans.addEdge(toAdd);
                 } else {
-                    tempCost = temp.getCost() - temp.getReverseCost();
+                    tempCost = temp.getCostLong() - temp.getReverseCostLong();
                     toAdd = new Arc("Gaux", new Pair<DirectedVertex>(indexedVertices.get(i), indexedVertices.get(j)), tempCost);
                     toAdd.setCapacity(2);
                     ans.addEdge(toAdd);
@@ -260,12 +312,16 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
     public static void buildEdgeSets(HashSet<Integer> e1, HashSet<Integer> e2, WindyGraph windyReq, WindyGraph fullGraph, double averageCost) {
         double costDiff;
         double threshold = K * averageCost;
-        for (WindyEdge e : windyReq.getEdges()) {
-            costDiff = Math.abs(e.getCost() - e.getReverseCost());
+        TIntObjectHashMap<WindyEdge> windyReqEdges = windyReq.getInternalEdgeMap();
+        for (int i = 1; i <= windyReq.getEdges().size(); i++) {
+            WindyEdge e = requireEdge(windyReqEdges, i);
+            costDiff = Math.abs(e.getCostLong() - e.getReverseCostLong());
             if (costDiff > threshold)
                 e1.add(e.getMatchId());
         }
-        for (WindyEdge e : fullGraph.getEdges()) {
+        TIntObjectHashMap<WindyEdge> fullGraphEdges = fullGraph.getInternalEdgeMap();
+        for (int i = 1; i <= fullGraph.getEdges().size(); i++) {
+            WindyEdge e = requireEdge(fullGraphEdges, i);
             if (!e1.contains(e.getId()))
                 e2.add(e.getId());
         }
@@ -274,14 +330,17 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
     public static double calculateAverageCost(WindyGraph g) {
         double ans = 0;
         double m = 2.0 * g.getEdges().size();
-        for (WindyEdge e : g.getEdges()) {
-            ans += (e.getCost() + e.getReverseCost());
+        TIntObjectHashMap<WindyEdge> indexedEdges = g.getInternalEdgeMap();
+        for (int i = 1; i <= g.getEdges().size(); i++) {
+            WindyEdge e = requireEdge(indexedEdges, i);
+            ans += (e.getCostLong() + e.getReverseCostLong());
         }
         return ans / m;
     }
 
     private static double calculateAveragePathCost(WindyGraph g, int i, int j, int[][] path, int[][] edgePath) {
-        int curr, end, next, ans;
+        int curr, end, next;
+        long ans;
         curr = i;
         end = j;
         ans = 0;
@@ -290,14 +349,15 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
         do {
             next = path[curr][end];
             temp = requireEdge(indexedWindyEdges, edgePath[curr][end]);
-            ans += temp.getCost() + temp.getReverseCost();
+            ans += temp.getCostLong() + temp.getReverseCostLong();
 
         } while ((curr = next) != end);
         return ans / 2.0;
     }
 
     private static double calculateAveragePathCost(WindyGraph g, int i, int j, int[] path, int[] edgePath) {
-        int start, end, next, ans;
+        int start, end, next;
+        long ans;
         start = i;
         end = j;
         ans = 0;
@@ -306,7 +366,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
         do {
             next = path[end];
             temp = requireEdge(indexedWindyEdges, edgePath[end]);
-            ans += temp.getCost() + temp.getReverseCost();
+            ans += temp.getCostLong() + temp.getReverseCostLong();
         } while ((end = next) != start);
         return ans / 2.0;
     }

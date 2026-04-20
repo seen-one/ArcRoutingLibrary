@@ -9,12 +9,14 @@ import oarlib.graph.graphgen.erdosrenyi.DirectedErdosRenyiGraphGenerator;
 import oarlib.graph.graphgen.erdosrenyi.UndirectedErdosRenyiGraphGenerator;
 import oarlib.graph.impl.DirectedGraph;
 import oarlib.graph.impl.UndirectedGraph;
+import oarlib.graph.impl.WindyGraph;
 import oarlib.graph.util.CommonAlgorithms;
 import oarlib.link.impl.Arc;
 import oarlib.link.impl.Edge;
 import oarlib.problem.impl.cpp.DirectedCPP;
 import oarlib.problem.impl.cpp.UndirectedCPP;
 import oarlib.solver.impl.DCPPSolver_Edmonds;
+import oarlib.solver.impl.WRPPSolver_Win;
 import oarlib.solver.impl.UCPPSolver_Edmonds;
 import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.UndirectedVertex;
@@ -23,6 +25,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -66,6 +69,41 @@ public class SingleVehicleSolverTestSuite {
         Route route = routes.iterator().next();
         assertTrue("Route cost should exceed int range and remain positive.", route.getCostLong() > Integer.MAX_VALUE);
         assertTrue("Printed solution should include the long route cost.", solver.printCurrentSol().contains(String.valueOf(route.getCostLong())));
+    }
+
+    @Test
+    public void testWRPPRepairSolutionUsesShortestPath() throws Exception {
+        WindyGraph original = new WindyGraph(3);
+        original.addEdge(1, 2, "required shortcut", 4L, 40L, true);
+        original.addEdge(2, 3, "cheap shortcut", 5L, 50L, false);
+        original.addEdge(1, 3, "expensive direct", 100L, 100L, false);
+
+        DirectedGraph solution = new DirectedGraph(3);
+        solution.addEdge(1, 3, "expensive solution arc", 100L, false);
+
+        WRPPSolver_Win.repairSolution(solution, original);
+
+        assertEquals("The expensive direct arc should be replaced by two shortest-path arcs.", 2, solution.getEdges().size());
+
+        long repairedCost = 0;
+        boolean foundFirstSegment = false;
+        boolean foundSecondSegment = false;
+        for (Arc arc : solution.getEdges()) {
+            repairedCost += arc.getCostLong();
+            if (arc.getFirstEndpointId() == 1 && arc.getSecondEndpointId() == 2) {
+                foundFirstSegment = true;
+                assertEquals("First replacement segment should use the forward windy cost.", 4L, arc.getCostLong());
+                assertTrue("Required status should come from the original windy edge.", arc.isRequired());
+            }
+            if (arc.getFirstEndpointId() == 2 && arc.getSecondEndpointId() == 3) {
+                foundSecondSegment = true;
+                assertEquals("Second replacement segment should use the forward windy cost.", 5L, arc.getCostLong());
+            }
+        }
+
+        assertEquals("Repaired path should have the cheaper total cost.", 9L, repairedCost);
+        assertTrue("Repair should include 1->2.", foundFirstSegment);
+        assertTrue("Repair should include 2->3.", foundSecondSegment);
     }
 
     @Test

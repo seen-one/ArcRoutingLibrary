@@ -1897,7 +1897,13 @@ public class CommonAlgorithms {
 
         DirectedGraph virtual = new DirectedGraph(n);
         try {
-            for (Link<? extends Vertex> l : g.getEdges()) {
+            ArrayList<Link<? extends Vertex>> sortedLinks = new ArrayList<Link<? extends Vertex>>(g.getEdges());
+            Collections.sort(sortedLinks, new Comparator<Link<? extends Vertex>>() {
+                public int compare(Link<? extends Vertex> first, Link<? extends Vertex> second) {
+                    return first.getId() - second.getId();
+                }
+            });
+            for (Link<? extends Vertex> l : sortedLinks) {
                 if (l.isDirected()) {
                     virtual.addEdge(l.getEndpoints().getFirst().getId(), l.getEndpoints().getSecond().getId(), l.getCostLong(), l.getId());
                 } else if (l instanceof AsymmetricLink) {
@@ -1917,6 +1923,8 @@ public class CommonAlgorithms {
             public int compare(long[] a, long[] b) {
                 if (a[1] < b[1]) return -1;
                 if (a[1] > b[1]) return 1;
+                if (a[0] < b[0]) return -1;
+                if (a[0] > b[0]) return 1;
                 return 0;
             }
         });
@@ -1953,12 +1961,18 @@ public class CommonAlgorithms {
                 continue;
             }
 
-            for (DirectedVertex v : u.getNeighbors().keySet()) {
+            ArrayList<DirectedVertex> sortedNeighbors = new ArrayList<DirectedVertex>(u.getNeighbors().keySet());
+            Collections.sort(sortedNeighbors, new Comparator<DirectedVertex>() {
+                public int compare(DirectedVertex first, DirectedVertex second) {
+                    return first.getId() - second.getId();
+                }
+            });
+            for (DirectedVertex v : sortedNeighbors) {
                 List<Arc> l = u.getNeighbors().get(v);
                 long min = LONG_INF;
                 int minid = Integer.MAX_VALUE;
                 for (Arc link : l) {
-                    if (link.getCostLong() < min) {
+                    if (link.getCostLong() < min || (link.getCostLong() == min && link.getMatchId() < minid)) {
                         min = link.getCostLong();
                         minid = link.getMatchId();
                     }
