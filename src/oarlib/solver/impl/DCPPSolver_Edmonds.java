@@ -69,7 +69,7 @@ public class DCPPSolver_Edmonds extends SingleVehicleSolver<DirectedVertex, Arc,
                 for (int i = 1; i < flowanswer.length; i++) {
                     temp = indexedArcs.get(i);
                     for (int j = 0; j < flowanswer[i]; j++) {
-                        input.addEdge(new Arc("added from flow", temp.getEndpoints(), temp.getCost()));
+                        input.addEdge(new Arc("added from flow", temp.getEndpoints(), temp.getCostLong()));
                     }
                 }
             }

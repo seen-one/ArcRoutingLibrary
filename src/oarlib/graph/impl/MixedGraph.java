@@ -65,6 +65,10 @@ public class MixedGraph extends MutableGraph<MixedVertex, MixedEdge> {
     //region Adders and Factory methods with isDirected
 
     public void addEdge(int i, int j, String desc, int cost, boolean isDirected) throws InvalidEndpointsException {
+        addEdge(i, j, desc, (long) cost, isDirected);
+    }
+
+    public void addEdge(int i, int j, String desc, long cost, boolean isDirected) throws InvalidEndpointsException {
         if (i > this.getVertices().size() || j > this.getVertices().size() || i < 0 || j < 0) {
             LOGGER.error("The endpoint indices passed in do not seem to fall within the valid range of this graph.");
             throw new InvalidEndpointsException();
@@ -73,6 +77,11 @@ public class MixedGraph extends MutableGraph<MixedVertex, MixedEdge> {
     }
 
     public MixedEdge constructEdge(int i, int j, String desc, int cost, boolean isDirected)
+            throws InvalidEndpointsException {
+        return constructEdge(i, j, desc, (long) cost, isDirected);
+    }
+
+    public MixedEdge constructEdge(int i, int j, String desc, long cost, boolean isDirected)
             throws InvalidEndpointsException {
         if (i > this.getVertices().size() || j > this.getVertices().size() || i < 0 || j < 0) {
             LOGGER.error("The endpoint indices passed in do not seem to fall within the valid range of this graph.");
@@ -83,6 +92,11 @@ public class MixedGraph extends MutableGraph<MixedVertex, MixedEdge> {
     }
 
     public MixedEdge constructEdge(int i, int j, String desc, int cost, boolean isDirected, boolean isRequired)
+            throws InvalidEndpointsException {
+        return constructEdge(i, j, desc, (long) cost, isDirected, isRequired);
+    }
+
+    public MixedEdge constructEdge(int i, int j, String desc, long cost, boolean isDirected, boolean isRequired)
             throws InvalidEndpointsException {
         if (i > this.getVertices().size() || j > this.getVertices().size() || i < 0 || j < 0) {
             LOGGER.error("The endpoint indices passed in do not seem to fall within the valid range of this graph.");
@@ -95,6 +109,10 @@ public class MixedGraph extends MutableGraph<MixedVertex, MixedEdge> {
     }
 
     public void addEdge(int i, int j, int cost, boolean isDirected, boolean isRequired) throws InvalidEndpointsException {
+        addEdge(i, j, (long) cost, isDirected, isRequired);
+    }
+
+    public void addEdge(int i, int j, long cost, boolean isDirected, boolean isRequired) throws InvalidEndpointsException {
         if (i > this.getVertices().size() || j > this.getVertices().size() || i < 0 || j < 0)
             throw new InvalidEndpointsException();
         MixedEdge temp = this.constructEdge(i, j, "", cost, isDirected, isRequired);
@@ -247,7 +265,7 @@ public class MixedGraph extends MutableGraph<MixedVertex, MixedEdge> {
             m = forSorting.size();
             for (int i = 0; i < m; i++) {
                 e = indexedEdges.get(forSorting.get(i));
-                e2 = new MixedEdge("deep copy original", new Pair<MixedVertex>(ans.getInternalVertexMap().get(e.getEndpoints().getFirst().getId()), ans.getInternalVertexMap().get(e.getEndpoints().getSecond().getId())), e.getCost(), e.isDirected());
+                e2 = new MixedEdge("deep copy original", new Pair<MixedVertex>(ans.getInternalVertexMap().get(e.getEndpoints().getFirst().getId()), ans.getInternalVertexMap().get(e.getEndpoints().getSecond().getId())), e.getCostLong(), e.isDirected());
                 e2.setMatchId(e.getId());
                 e2.setRequired(e.isRequired());
                 e2.setZone(e.getZone());
@@ -266,6 +284,11 @@ public class MixedGraph extends MutableGraph<MixedVertex, MixedEdge> {
 
     @Override
     public MixedEdge constructEdge(int i, int j, String desc, int cost)
+            throws InvalidEndpointsException {
+        return constructEdge(i, j, desc, (long) cost);
+    }
+
+    public MixedEdge constructEdge(int i, int j, String desc, long cost)
             throws InvalidEndpointsException {
         if (!getInternalVertexMap().containsKey(i) || !getInternalVertexMap().containsKey(j) || i < 0 || j < 0) {
             LOGGER.error("The endpoint indices passed in do not seem to fall within the valid range of this graph.");

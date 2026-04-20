@@ -48,6 +48,11 @@ public class Arc extends Link<DirectedVertex> {
         setDirected(true);
     }
 
+    public Arc(String label, Pair<DirectedVertex> endpoints, long cost) {
+        super(label, endpoints, cost);
+        setDirected(true);
+    }
+
     /**
      * Constructor for an arc.  The order of the endpoints matters; the first in the pair should be the tail.
      * That is, if this an arc from v1 to v2, then the endpoints.getFirst() should be v1
@@ -59,6 +64,11 @@ public class Arc extends Link<DirectedVertex> {
      * @param required  - whether or not this edge must be traversed in the final solution
      */
     public Arc(String label, Pair<DirectedVertex> endpoints, int cost, boolean required) {
+        super(label, endpoints, cost, required);
+        setDirected(true);
+    }
+
+    public Arc(String label, Pair<DirectedVertex> endpoints, long cost, boolean required) {
         super(label, endpoints, cost, required);
         setDirected(true);
     }
@@ -83,7 +93,7 @@ public class Arc extends Link<DirectedVertex> {
 
     @Override
     public Arc getCopy() {
-        return new Arc("copy", this.getEndpoints(), this.getCost());
+        return new Arc("copy", this.getEndpoints(), this.getCostLong());
     }
 
     @Override

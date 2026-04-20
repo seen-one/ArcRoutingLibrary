@@ -34,7 +34,11 @@ public interface AsymmetricLink {
 
     int getReverseCost();
 
+    long getReverseCostLong();
+
     int getReverseServiceCost();
+
+    long getReverseServiceCostLong();
 
     boolean isReverseRequired();
 

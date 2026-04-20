@@ -46,8 +46,8 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
     private static final SimpleLogger LOGGER = SimpleLogger.getLogger(Route.class);
     private static int routeIDCounter = 1;
 
-    protected int mCost; // cost of the route
-    protected int mServCost; // traversal cost of the serviced links in the route (DOES NOT INCLUDE SERVICE TIMES, ONLY TRAVEL, SINCE NOT ALL TYPES OF LINKS HAVE SEPARATE SERVICE TIMES)
+    protected long mCost; // cost of the route
+    protected long mServCost; // traversal cost of the serviced links in the route (DOES NOT INCLUDE SERVICE TIMES, ONLY TRAVEL, SINCE NOT ALL TYPES OF LINKS HAVE SEPARATE SERVICE TIMES)
     protected TIntIntHashMap mCustomIDMap; // 1-1 map that allows toString to correspond vertices in another graph than the one that the links come from.
     protected ArrayList<E> mRoute; // the ordered of links that comprise this route
     protected ArrayList<Boolean> traversalDirection; // the ith entry is true if the ith link in the route is traversed from first to second
@@ -161,6 +161,10 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
      * @return the cost of the route
      */
     public int getCost() {
+        return toIntCost(mCost, "route cost");
+    }
+
+    public long getCostLong() {
         return mCost;
     }
 
@@ -168,6 +172,10 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
      * @return the cost of the required links on the route
      */
     public int getReqCost() {
+        return toIntCost(mServCost, "route service cost");
+    }
+
+    public long getReqCostLong() {
         return mServCost;
     }
 
@@ -283,10 +291,10 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
         int tempFirst = temp.getEndpoints().getFirst().getId();
         int tempSecond = temp.getEndpoints().getSecond().getId();
 
-        int trueCost;
+        long trueCost;
         if (mRoute.size() == 1 && !directionDetermined) {
             if ((lFirst == tempFirst || lSecond == tempFirst) && isWindy) {
-                trueCost = ((AsymmetricLink) temp).getReverseCost();
+                trueCost = ((AsymmetricLink) temp).getReverseCostLong();
                 traversalDirection.add(false);
                 if (tempReq && servicing.get(0)) {
                     mServCost += trueCost;
@@ -294,7 +302,7 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
                     compactRepresentation.add(temp.getId());
                 }
             } else {
-                trueCost = temp.getCost();
+                trueCost = temp.getCostLong();
                 traversalDirection.add(true);
                 if (tempReq && servicing.get(0)) {
                     mServCost += trueCost;
@@ -316,7 +324,7 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
                     int limi = traversalDirection.size();
                     boolean tempDir;
                     E tempE;
-                    int tempCostMod;
+                    long tempCostMod;
                     for (int i = 0; i < limi; i++) {
                         tempDir = traversalDirection.get(i);
                         traversalDirection.set(i, !tempDir);
@@ -325,13 +333,13 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
                             //fix costs
                             if (tempDir) {
                                 tempE = mRoute.get(i);
-                                tempCostMod = ((AsymmetricLink) tempE).getReverseCost() - tempE.getCost();
+                                tempCostMod = ((AsymmetricLink) tempE).getReverseCostLong() - tempE.getCostLong();
                                 mCost += tempCostMod;
                                 if (tempE.isRequired())
                                     mServCost += tempCostMod;
                             } else {
                                 tempE = mRoute.get(i);
-                                tempCostMod = tempE.getCost() - ((AsymmetricLink) tempE).getReverseCost();
+                                tempCostMod = tempE.getCostLong() - ((AsymmetricLink) tempE).getReverseCostLong();
                                 mCost += tempCostMod;
                                 if (tempE.isRequired())
                                     mServCost += tempCostMod;
@@ -352,7 +360,7 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
         //TODO: Check for directed contraints as well
 
         if (!isWindy) {
-            trueCost = l.getCost();
+            trueCost = l.getCostLong();
             if (lreq && service) {
                 compactRepresentation.add(l.getId());
             }
@@ -361,14 +369,14 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
         else if (lFirst == tempFirst && lSecond == tempSecond) {
             boolean tempTD = !traversalDirection.get(traversalDirection.size() - 1);
             if (tempTD) {
-                trueCost = l.getCost();
+                trueCost = l.getCostLong();
                 traversalDirection.add(true);
                 if (lreq && service) {
                     compactTD.add(true);
                     compactRepresentation.add(l.getId());
                 }
             } else {
-                trueCost = ((AsymmetricLink) l).getReverseCost();
+                trueCost = ((AsymmetricLink) l).getReverseCostLong();
                 traversalDirection.add(false);
                 if (lreq && service) {
                     compactTD.add(false);
@@ -378,14 +386,14 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
         } else if (lFirst == tempSecond && lSecond == tempFirst) {
             boolean tempTD = traversalDirection.get(traversalDirection.size() - 1);
             if (tempTD) {
-                trueCost = l.getCost();
+                trueCost = l.getCostLong();
                 traversalDirection.add(true);
                 if (lreq && service) {
                     compactTD.add(true);
                     compactRepresentation.add(l.getId());
                 }
             } else {
-                trueCost = ((AsymmetricLink) l).getReverseCost();
+                trueCost = ((AsymmetricLink) l).getReverseCostLong();
                 traversalDirection.add(false);
                 if (lreq && service) {
                     compactTD.add(false);
@@ -393,14 +401,14 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
                 }
             }
         } else if (lFirst == tempFirst || lFirst == tempSecond) {
-            trueCost = l.getCost();
+            trueCost = l.getCostLong();
             traversalDirection.add(true);
             if (lreq && service) {
                 compactTD.add(true);
                 compactRepresentation.add(l.getId());
             }
         } else if (lSecond == tempFirst || lSecond == tempSecond) {
-            trueCost = ((AsymmetricLink) l).getReverseCost();
+            trueCost = ((AsymmetricLink) l).getReverseCostLong();
             traversalDirection.add(false);
             if (lreq && service) {
                 compactTD.add(false);
@@ -599,9 +607,9 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
             compactRepresentation.remove(compactPos);
             compactTD.remove(compactPos);
             if(!mRoute.get(position).isWindy() || traversalDirection.get(position))
-                mServCost -= mRoute.get(position).getCost();
+                mServCost -= mRoute.get(position).getCostLong();
             else {
-                mServCost -= ((AsymmetricLink)(mRoute.get(position))).getReverseCost();
+                mServCost -= ((AsymmetricLink)(mRoute.get(position))).getReverseCostLong();
             }
 
         } else {
@@ -609,9 +617,9 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
             compactRepresentation.insert(compactPos, mRoute.get(position).getId());
             compactTD.add(compactPos, traversalDirection.get(position));
             if(!mRoute.get(position).isWindy() || traversalDirection.get(position))
-                mServCost += mRoute.get(position).getCost();
+                mServCost += mRoute.get(position).getCostLong();
             else {
-                mServCost += ((AsymmetricLink)(mRoute.get(position))).getReverseCost();
+                mServCost += ((AsymmetricLink)(mRoute.get(position))).getReverseCostLong();
             }
         }
 
@@ -630,6 +638,13 @@ public abstract class Route<V extends Vertex, E extends Link<V>> {
         }
 
         return hash;
+    }
+
+    protected static int toIntCost(long value, String fieldName) {
+        if (value > Integer.MAX_VALUE || value < Integer.MIN_VALUE) {
+            throw new ArithmeticException("The " + fieldName + " does not fit in an int: " + value);
+        }
+        return (int) value;
     }
 
 

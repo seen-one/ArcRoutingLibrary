@@ -148,7 +148,7 @@ public class UndirectedGraph extends MutableGraph<UndirectedVertex, Edge> {
             int m = forSorting.size();
             for (int i = 0; i < m; i++) {
                 e = indexedEdges.get(forSorting.get(i));
-                e2 = new Edge("deep copy original", new Pair<UndirectedVertex>(ans.getInternalVertexMap().get(e.getEndpoints().getFirst().getId()), ans.getInternalVertexMap().get(e.getEndpoints().getSecond().getId())), e.getCost());
+                e2 = new Edge("deep copy original", new Pair<UndirectedVertex>(ans.getInternalVertexMap().get(e.getEndpoints().getFirst().getId()), ans.getInternalVertexMap().get(e.getEndpoints().getSecond().getId())), e.getCostLong());
                 e2.setRequired(e.isRequired());
                 e2.setMatchId(e.getId());
                 e2.setZone(e.getZone());
@@ -168,11 +168,37 @@ public class UndirectedGraph extends MutableGraph<UndirectedVertex, Edge> {
     @Override
     public Edge constructEdge(int i, int j, String desc, int cost)
             throws InvalidEndpointsException {
+        return constructEdge(i, j, desc, (long) cost);
+    }
+
+    public Edge constructEdge(int i, int j, String desc, long cost)
+            throws InvalidEndpointsException {
         if (!getInternalVertexMap().containsKey(i) || !getInternalVertexMap().containsKey(j) || i < 0 || j < 0) {
             LOGGER.error("The endpoint indices passed in do not seem to fall within the valid range of this graph.");
             throw new InvalidEndpointsException();
         }
         return new Edge(desc, new Pair<UndirectedVertex>(this.getInternalVertexMap().get(i), this.getInternalVertexMap().get(j)), cost);
+    }
+
+    public void addEdge(int i, int j, long cost) throws InvalidEndpointsException {
+        this.addEdge(this.constructEdge(i, j, "", cost));
+    }
+
+    public void addEdge(int i, int j, String desc, long cost) throws InvalidEndpointsException {
+        this.addEdge(this.constructEdge(i, j, desc, cost));
+    }
+
+    public void addEdge(int i, int j, String desc, long cost, boolean isReq)
+            throws InvalidEndpointsException {
+        Edge temp = this.constructEdge(i, j, desc, cost);
+        temp.setRequired(isReq);
+        this.addEdge(temp);
+    }
+
+    public void addEdge(int i, int j, String desc, long cost, int matchId) throws InvalidEndpointsException {
+        Edge temp = this.constructEdge(i, j, desc, cost);
+        temp.setMatchId(matchId);
+        this.addEdge(temp);
     }
 
     @Override

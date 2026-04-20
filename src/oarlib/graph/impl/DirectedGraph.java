@@ -154,7 +154,7 @@ public class DirectedGraph extends MutableGraph<DirectedVertex, Arc> {
 
             for (int i = 0; i < m; i++) {
                 a = indexedArcs.get(forSorting.get(i));
-                a2 = new Arc("deep copy original", new Pair<DirectedVertex>(ans.getInternalVertexMap().get(a.getTail().getId()), ans.getInternalVertexMap().get(a.getHead().getId())), a.getCost());
+                a2 = new Arc("deep copy original", new Pair<DirectedVertex>(ans.getInternalVertexMap().get(a.getTail().getId()), ans.getInternalVertexMap().get(a.getHead().getId())), a.getCostLong());
                 if (a.isCapacitySet())
                     a2.setCapacity(a.getCapacity());
                 a2.setRequired(a.isRequired());
@@ -176,12 +176,54 @@ public class DirectedGraph extends MutableGraph<DirectedVertex, Arc> {
     @Override
     public Arc constructEdge(int i, int j, String desc, int cost)
             throws InvalidEndpointsException {
+        return constructEdge(i, j, desc, (long) cost);
+    }
+
+    public Arc constructEdge(int i, int j, String desc, long cost)
+            throws InvalidEndpointsException {
         if (!getInternalVertexMap().containsKey(i) || !getInternalVertexMap().containsKey(j) || i < 0 || j < 0) {
             LOGGER.error("The endpoint indices passed in do not seem to fall within the valid range of this graph.");
             throw new InvalidEndpointsException();
         }
         return new Arc(desc, new Pair<DirectedVertex>(this.getInternalVertexMap().get(i), this.getInternalVertexMap().get(j)), cost);
 
+    }
+
+    public void addEdge(int i, int j, long cost) throws InvalidEndpointsException {
+        this.addEdge(this.constructEdge(i, j, "", cost));
+    }
+
+    public void addEdge(int i, int j, long cost, boolean isReq) throws InvalidEndpointsException {
+        this.addEdge(i, j, "", cost, isReq);
+    }
+
+    public void addEdge(int i, int j, String desc, long cost) throws InvalidEndpointsException {
+        this.addEdge(this.constructEdge(i, j, desc, cost));
+    }
+
+    public void addEdge(int i, int j, String desc, long cost, boolean isReq)
+            throws InvalidEndpointsException {
+        Arc temp = this.constructEdge(i, j, desc, cost);
+        temp.setRequired(isReq);
+        this.addEdge(temp);
+    }
+
+    public void addEdge(int i, int j, long cost, int matchId) throws InvalidEndpointsException {
+        this.addEdge(i, j, "", cost, matchId);
+    }
+
+    public void addEdge(int i, int j, String desc, long cost, int matchId) throws InvalidEndpointsException {
+        Arc temp = this.constructEdge(i, j, desc, cost);
+        temp.setMatchId(matchId);
+        this.addEdge(temp);
+    }
+
+    public void addEdge(int i, int j, String desc, long cost, int matchId, boolean isReq)
+            throws InvalidEndpointsException {
+        Arc temp = this.constructEdge(i, j, desc, cost);
+        temp.setRequired(isReq);
+        temp.setMatchId(matchId);
+        this.addEdge(temp);
     }
 
     @Override

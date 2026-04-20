@@ -14,6 +14,7 @@ import java.util.HashSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test suite for our various shortest path methods.
@@ -303,6 +304,47 @@ public class ShortestPathsTestSuite {
         }
 
 
+    }
+
+    @Test
+    public void testLongCostShortestPathsDoNotOverflow() throws Exception {
+        DirectedGraph testGraph = new DirectedGraph(4);
+        testGraph.addEdge(1, 2, 1000000000L);
+        testGraph.addEdge(2, 3, 1000000000L);
+        testGraph.addEdge(3, 4, 1000000000L);
+        testGraph.addEdge(1, 4, 4000000000L);
+
+        long[][] fwDist = new long[5][5];
+        int[][] fwPath = new int[5][5];
+        CommonAlgorithms.fwLeastCostPaths(testGraph, fwDist, fwPath);
+        assertEquals("Floyd-Warshall should keep distances above int range.", 3000000000L, fwDist[1][4]);
+
+        long[] dijkstraDist = new long[5];
+        int[] dijkstraPath = new int[5];
+        CommonAlgorithms.dijkstrasAlgorithm(testGraph, 1, dijkstraDist, dijkstraPath);
+        assertEquals("Dijkstra should keep distances above int range.", 3000000000L, dijkstraDist[4]);
+
+        long[] bellmanDist = new long[5];
+        int[] bellmanPath = new int[5];
+        CommonAlgorithms.bellmanFordShortestPaths(testGraph, 1, bellmanDist, bellmanPath);
+        assertEquals("Bellman-Ford should keep distances above int range.", 3000000000L, bellmanDist[4]);
+
+        long[] slfDist = new long[5];
+        int[] slfPath = new int[5];
+        CommonAlgorithms.slfShortestPaths(testGraph, 1, slfDist, slfPath);
+        assertEquals("SLF should keep distances above int range.", 3000000000L, slfDist[4]);
+
+        long[] papeDist = new long[5];
+        int[] papePath = new int[5];
+        CommonAlgorithms.papeShortestPaths(testGraph, 1, papeDist, papePath);
+        assertEquals("Pape-compatible path API should keep distances above int range.", 3000000000L, papeDist[4]);
+
+        try {
+            CommonAlgorithms.dijkstrasAlgorithm(testGraph, 1, new int[5], new int[5]);
+            assertFalse("Legacy int API should reject distances that do not fit in int.", true);
+        } catch (ArithmeticException expected) {
+            assertTrue(expected.getMessage().contains("does not fit in an int"));
+        }
     }
 
     @Test

@@ -46,6 +46,11 @@ public class Edge extends Link<UndirectedVertex> {
         setDirected(false);
     }
 
+    public Edge(String label, Pair<UndirectedVertex> endpoints, long cost) {
+        super(label, endpoints, cost);
+        setDirected(false);
+    }
+
     /**
      * Constructor for an Edge.
      *
@@ -59,9 +64,14 @@ public class Edge extends Link<UndirectedVertex> {
         setDirected(false);
     }
 
+    public Edge(String label, Pair<UndirectedVertex> endpoints, long cost, boolean required) {
+        super(label, endpoints, cost, required);
+        setDirected(false);
+    }
+
     @Override
     public Edge getCopy() {
-        return new Edge("copy", this.getEndpoints(), this.getCost());
+        return new Edge("copy", this.getEndpoints(), this.getCostLong());
     }
 
     @Override

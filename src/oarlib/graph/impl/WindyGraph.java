@@ -63,7 +63,17 @@ public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
         this.addEdge(i, j, "", cost, reverseCost);
     }
 
+    public void addEdge(int i, int j, long cost, long reverseCost)
+            throws InvalidEndpointsException {
+        this.addEdge(i, j, "", cost, reverseCost);
+    }
+
     public void addEdge(int i, int j, String desc, int cost, int reverseCost)
+            throws InvalidEndpointsException {
+        this.addEdge(this.constructEdge(i, j, desc, cost, reverseCost));
+    }
+
+    public void addEdge(int i, int j, String desc, long cost, long reverseCost)
             throws InvalidEndpointsException {
         this.addEdge(this.constructEdge(i, j, desc, cost, reverseCost));
     }
@@ -73,12 +83,27 @@ public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
         this.addEdge(this.constructEdge(i, j, desc, cost, reverseCost), matchId);
     }
 
+    public void addEdge(int i, int j, String desc, long cost, long reverseCost, int matchId)
+            throws InvalidEndpointsException {
+        this.addEdge(this.constructEdge(i, j, desc, cost, reverseCost), matchId);
+    }
+
     public void addEdge(int i, int j, int cost, int reverseCost, boolean isRequired)
             throws InvalidEndpointsException {
         this.addEdge(this.constructEdge(i, j, "", cost, reverseCost, isRequired));
     }
 
+    public void addEdge(int i, int j, long cost, long reverseCost, boolean isRequired)
+            throws InvalidEndpointsException {
+        this.addEdge(this.constructEdge(i, j, "", cost, reverseCost, isRequired));
+    }
+
     public void addEdge(int i, int j, String desc, int cost, int reverseCost, boolean isRequired)
+            throws InvalidEndpointsException {
+        this.addEdge(this.constructEdge(i, j, desc, cost, reverseCost, isRequired));
+    }
+
+    public void addEdge(int i, int j, String desc, long cost, long reverseCost, boolean isRequired)
             throws InvalidEndpointsException {
         this.addEdge(this.constructEdge(i, j, desc, cost, reverseCost, isRequired));
     }
@@ -90,6 +115,11 @@ public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
 
     public WindyEdge constructEdge(int i, int j, String desc, int cost, int reverseCost)
             throws InvalidEndpointsException {
+        return constructEdge(i, j, desc, (long) cost, (long) reverseCost);
+    }
+
+    public WindyEdge constructEdge(int i, int j, String desc, long cost, long reverseCost)
+            throws InvalidEndpointsException {
         if (!getInternalVertexMap().containsKey(i) || !getInternalVertexMap().containsKey(j) || i < 0 || j < 0) {
             LOGGER.error("The endpoint indices passed in do not seem to fall within the valid range of this graph.");
             throw new InvalidEndpointsException();
@@ -99,6 +129,11 @@ public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
     }
 
     public WindyEdge constructEdge(int i, int j, String desc, int cost, int reverseCost, boolean isRequired)
+            throws InvalidEndpointsException {
+        return constructEdge(i, j, desc, (long) cost, (long) reverseCost, isRequired);
+    }
+
+    public WindyEdge constructEdge(int i, int j, String desc, long cost, long reverseCost, boolean isRequired)
             throws InvalidEndpointsException {
         if (!getInternalVertexMap().containsKey(i) || !getInternalVertexMap().containsKey(j) || i < 0 || j < 0) {
             LOGGER.error("The endpoint indices passed in do not seem to fall within the valid range of this graph.");
@@ -209,7 +244,7 @@ public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
                 if (e == null) {
                     throw new IllegalStateException("WindyGraph deep copy missing edge id " + edgeId + " (index " + i + " of " + m + ")");
                 }
-                e2 = new WindyEdge(e.getLabel(), new Pair<WindyVertex>(ans.getVertex(e.getFirstEndpointId()), ans.getVertex(e.getSecondEndpointId())), e.getCost(), e.getReverseCost());
+                e2 = new WindyEdge(e.getLabel(), new Pair<WindyVertex>(ans.getVertex(e.getFirstEndpointId()), ans.getVertex(e.getSecondEndpointId())), e.getCostLong(), e.getReverseCostLong());
                 e2.setMatchId(e.getId());
                 e2.setRequired(e.isRequired());
                 e2.setZone(e.getZone());
@@ -228,6 +263,11 @@ public class WindyGraph extends MutableGraph<WindyVertex, WindyEdge> {
 
     @Override
     public WindyEdge constructEdge(int i, int j, String desc, int cost)
+            throws InvalidEndpointsException {
+        return constructEdge(i, j, desc, (long) cost);
+    }
+
+    public WindyEdge constructEdge(int i, int j, String desc, long cost)
             throws InvalidEndpointsException {
         if (!getInternalVertexMap().containsKey(i) || !getInternalVertexMap().containsKey(j) || i < 0 || j < 0) {
             LOGGER.error("The endpoint indices passed in do not seem to fall within the valid range of this graph.");

@@ -44,7 +44,7 @@ public abstract class Graph<V extends Vertex, E extends Link<V>> {
     private int eidCounter; //for assigning internal ids of edges
     private int graphId; //id of the graph
     private int depotId; //internal vertex id of the depot
-    private int[][] mDist; //shortest paths dist matrix
+    private long[][] mDistLong; //shortest paths dist matrix
     private int[][] mPath; //shortest paths matrix
     private int[][] mEdgePath; //shortest paths matrix, with internal edge ids
     protected TIntObjectHashMap<HashSet<Integer>> incidenceMap; // key is vertex id, value is a set of edge ids incident on the vertex
@@ -134,19 +134,37 @@ public abstract class Graph<V extends Vertex, E extends Link<V>> {
         if (!distGenerated) {
             //generate it
             int n = getVertices().size();
-            int[][] dist = new int[n + 1][n + 1];
+            long[][] dist = new long[n + 1][n + 1];
             int[][] path = new int[n + 1][n + 1];
             int[][] edgePath = new int[n + 1][n + 1];
             CommonAlgorithms.fwLeastCostPaths(this, dist, path, edgePath);
 
-            mDist = dist;
+            mDistLong = dist;
             mPath = path;
             mEdgePath = edgePath;
 
             distGenerated = true;
         }
 
-        return mDist;
+        return CommonAlgorithms.toIntDistanceMatrix(mDistLong);
+    }
+
+    public long[][] getAllPairsDistMatrixLong() {
+        if (!distGenerated) {
+            int n = getVertices().size();
+            long[][] dist = new long[n + 1][n + 1];
+            int[][] path = new int[n + 1][n + 1];
+            int[][] edgePath = new int[n + 1][n + 1];
+            CommonAlgorithms.fwLeastCostPaths(this, dist, path, edgePath);
+
+            mDistLong = dist;
+            mPath = path;
+            mEdgePath = edgePath;
+
+            distGenerated = true;
+        }
+
+        return mDistLong;
     }
 
     /**
@@ -157,12 +175,12 @@ public abstract class Graph<V extends Vertex, E extends Link<V>> {
     public int[][] getAllPairsPathMatrix() {
         if (!distGenerated) {
             int n = getVertices().size();
-            int[][] dist = new int[n + 1][n + 1];
+            long[][] dist = new long[n + 1][n + 1];
             int[][] path = new int[n + 1][n + 1];
             int[][] edgePath = new int[n + 1][n + 1];
             CommonAlgorithms.fwLeastCostPaths(this, dist, path, edgePath);
 
-            mDist = dist;
+            mDistLong = dist;
             mPath = path;
             mEdgePath = edgePath;
 
@@ -180,12 +198,12 @@ public abstract class Graph<V extends Vertex, E extends Link<V>> {
     public int[][] getAllPairsEdgePathMatrix() {
         if (!distGenerated) {
             int n = getVertices().size();
-            int[][] dist = new int[n + 1][n + 1];
+            long[][] dist = new long[n + 1][n + 1];
             int[][] path = new int[n + 1][n + 1];
             int[][] edgePath = new int[n + 1][n + 1];
             CommonAlgorithms.fwLeastCostPaths(this, dist, path, edgePath);
 
-            mDist = dist;
+            mDistLong = dist;
             mPath = path;
             mEdgePath = edgePath;
 

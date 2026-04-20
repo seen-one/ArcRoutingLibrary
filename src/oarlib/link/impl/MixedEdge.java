@@ -44,6 +44,11 @@ public class MixedEdge extends Link<MixedVertex> {
         setDirected(false);
     }
 
+    public MixedEdge(String label, Pair<MixedVertex> endpoints, long cost) {
+        super(label, endpoints, cost);
+        setDirected(false);
+    }
+
     /**
      * Constructor for a MixedEdge.
      *
@@ -57,7 +62,17 @@ public class MixedEdge extends Link<MixedVertex> {
         setDirected(isDirected);
     }
 
+    public MixedEdge(String label, Pair<MixedVertex> endpoints, long cost, boolean isDirected) {
+        super(label, endpoints, cost);
+        setDirected(isDirected);
+    }
+
     public MixedEdge(String label, Pair<MixedVertex> endpoints, int cost, boolean isDirected, boolean required) {
+        super(label, endpoints, cost, required);
+        setDirected(isDirected);
+    }
+
+    public MixedEdge(String label, Pair<MixedVertex> endpoints, long cost, boolean isDirected, boolean required) {
         super(label, endpoints, cost, required);
         setDirected(isDirected);
     }
@@ -86,7 +101,7 @@ public class MixedEdge extends Link<MixedVertex> {
 
     @Override
     public MixedEdge getCopy() {
-        return new MixedEdge("copy", this.getEndpoints(), this.getCost(), this.isDirected());
+        return new MixedEdge("copy", this.getEndpoints(), this.getCostLong(), this.isDirected());
     }
 
     @Override

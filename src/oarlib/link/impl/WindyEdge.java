@@ -34,8 +34,8 @@ import oarlib.vertex.impl.WindyVertex;
  */
 public class WindyEdge extends Link<WindyVertex> implements AsymmetricLink {
 
-    private int mReverseCost; // cost of traversing from endpoint 2 to endpoint 1
-    private int mReverseServiceCost;
+    private long mReverseCost; // cost of traversing from endpoint 2 to endpoint 1
+    private long mReverseServiceCost;
     private boolean mReverseRequired;
 
     /**
@@ -47,6 +47,14 @@ public class WindyEdge extends Link<WindyVertex> implements AsymmetricLink {
      * @param reverseCost = the cost of traversing the edge from the endpoint 2 to endpoint 1
      */
     public WindyEdge(String label, Pair<WindyVertex> endpoints, int cost, int reverseCost) {
+        super(label, endpoints, cost);
+        setReverseCost(reverseCost);
+        setReverseServiceCost(0);
+        setDirected(false);
+        setReverseRequired(false);
+    }
+
+    public WindyEdge(String label, Pair<WindyVertex> endpoints, long cost, long reverseCost) {
         super(label, endpoints, cost);
         setReverseCost(reverseCost);
         setReverseServiceCost(0);
@@ -71,24 +79,46 @@ public class WindyEdge extends Link<WindyVertex> implements AsymmetricLink {
         setReverseRequired(false);
     }
 
+    public WindyEdge(String label, Pair<WindyVertex> endpoints, long cost, long reverseCost, boolean required) {
+        super(label, endpoints, cost, required);
+        setReverseCost(reverseCost);
+        setReverseServiceCost(0);
+        setDirected(false);
+        setReverseRequired(false);
+    }
+
     //==================================
     // Getters and Setters
     // =================================
 
     public int getReverseCost() {
+        return toIntCost(mReverseCost, "reverse cost");
+    }
+
+    public long getReverseCostLong() {
         return mReverseCost;
     }
 
     @Override
     public int getReverseServiceCost() {
+        return toIntCost(mReverseServiceCost, "reverse service cost");
+    }
+
+    public long getReverseServiceCostLong() {
         return mReverseServiceCost;
     }
 
     public void setReverseCost(int mReverseCost) {
+        setReverseCost((long) mReverseCost);
+    }
+
+    public void setReverseCost(long mReverseCost) {
         this.mReverseCost = mReverseCost;
     }
 
-    public void setReverseServiceCost(int mReverseServiceCost) { this.mReverseServiceCost = mReverseServiceCost; }
+    public void setReverseServiceCost(int mReverseServiceCost) { setReverseServiceCost((long) mReverseServiceCost); }
+
+    public void setReverseServiceCost(long mReverseServiceCost) { this.mReverseServiceCost = mReverseServiceCost; }
 
     @Override
     public boolean isReverseRequired() {
@@ -102,7 +132,7 @@ public class WindyEdge extends Link<WindyVertex> implements AsymmetricLink {
 
     @Override
     public WindyEdge getCopy() {
-        return new WindyEdge("copy", this.getEndpoints(), this.getCost(), this.getReverseCost(), this.isRequired());
+        return new WindyEdge("copy", this.getEndpoints(), this.getCostLong(), this.getReverseCostLong(), this.isRequired());
     }
 
     @Override

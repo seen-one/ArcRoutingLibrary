@@ -21,6 +21,10 @@ import oarlib.vertex.impl.UndirectedVertex;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collection;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 
 /**
@@ -44,6 +48,24 @@ public class SingleVehicleSolverTestSuite {
         // Gurobi dependency removed - this test requires optional Gurobi solver
         // Skipping test
         LOGGER.info("testDCPPSolver skipped - requires optional Gurobi dependency");
+    }
+
+    @Test
+    public void testDCPPSolverLongRouteCost() throws Exception {
+        DirectedGraph graph = new DirectedGraph(3);
+        graph.addEdge(1, 2, 1000000000L, true);
+        graph.addEdge(2, 3, 1000000000L, true);
+        graph.addEdge(3, 1, 1000000000L, true);
+        graph.addEdge(1, 3, 1000000000L, true);
+
+        DirectedCPP problem = new DirectedCPP(graph, "long-cost-regression");
+        DCPPSolver_Edmonds solver = new DCPPSolver_Edmonds(problem);
+        Collection<? extends Route> routes = solver.trySolve();
+
+        assertNotNull("Solver should produce a route collection.", routes);
+        Route route = routes.iterator().next();
+        assertTrue("Route cost should exceed int range and remain positive.", route.getCostLong() > Integer.MAX_VALUE);
+        assertTrue("Printed solution should include the long route cost.", solver.printCurrentSol().contains(String.valueOf(route.getCostLong())));
     }
 
     @Test

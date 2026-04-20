@@ -41,8 +41,8 @@ public abstract class Link<V extends Vertex> {
     private int mGraphId; //id in which the link sits
     private int matchId; //for associating this link with another
     private Pair<V> mEndpoints;
-    private int mCost;
-    private int mServiceCost;
+    private long mCost;
+    private long mServiceCost;
     private int mCapacity;
     private boolean isDirected;
     private boolean isRequired;
@@ -58,7 +58,15 @@ public abstract class Link<V extends Vertex> {
         this(label, endpoints, cost, true);
     }
 
+    protected Link(String label, Pair<V> endpoints, long cost) {
+        this(label, endpoints, cost, true);
+    }
+
     protected Link(String label, Pair<V> endpoints, int cost, boolean required) {
+        this(label, endpoints, (long) cost, required);
+    }
+
+    protected Link(String label, Pair<V> endpoints, long cost, boolean required) {
         setId(-1);
         setGraphId(-1);
         setMatchId(-1);
@@ -99,18 +107,34 @@ public abstract class Link<V extends Vertex> {
     }
 
     public int getCost() {
+        return toIntCost(mCost, "cost");
+    }
+
+    public long getCostLong() {
         return mCost;
     }
 
     public void setCost(int mCost) {
+        setCost((long) mCost);
+    }
+
+    public void setCost(long mCost) {
         this.mCost = mCost;
     }
 
     public int getServiceCost() {
+        return toIntCost(mServiceCost, "service cost");
+    }
+
+    public long getServiceCostLong() {
         return mServiceCost;
     }
 
     public void setServiceCost(int mServiceCost) {
+        setServiceCost((long) mServiceCost);
+    }
+
+    public void setServiceCost(long mServiceCost) {
         this.mServiceCost = mServiceCost;
     }
 
@@ -223,6 +247,13 @@ public abstract class Link<V extends Vertex> {
     }
 
     public abstract Type getLinkType();
+
+    protected static int toIntCost(long value, String fieldName) {
+        if (value > Integer.MAX_VALUE || value < Integer.MIN_VALUE) {
+            throw new ArithmeticException("The link " + fieldName + " does not fit in an int: " + value);
+        }
+        return (int) value;
+    }
 
     public int getMaxSpeed() {
         return maxSpeed;

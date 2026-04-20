@@ -55,10 +55,12 @@ public abstract class SingleVehicleSolver<V extends Vertex, E extends Link<V>, G
      */
     public String printCurrentSol() throws IllegalStateException {
         Collection<Route<V, E>> currSol = mInstance.getSol();
-        if (currSol.size() > 1)
-            LOGGER.error("It appears as though this solution contains multiple routes to a single vehicle problem.", new IllegalStateException());
         if (currSol == null)
             LOGGER.error("It does not appear as though this solver has been run yet!", new IllegalStateException());
+        if (currSol == null || currSol.isEmpty())
+            return "No solution has been set for this problem yet.";
+        if (currSol.size() > 1)
+            LOGGER.error("It appears as though this solution contains multiple routes to a single vehicle problem.", new IllegalStateException());
 
         String ans = "=======================================================\n";
         for (Route<V, E> r : currSol) {
@@ -68,7 +70,7 @@ public abstract class SingleVehicleSolver<V extends Vertex, E extends Link<V>, G
             ans += "\n";
             ans += "Vertices: " + mInstance.getGraph().getVertices().size() + "\n";
             ans += "Edges: " + mInstance.getGraph().getEdges().size() + "\n";
-            ans += "Route Cost: " + r.getCost() + "\n";
+            ans += "Route Cost: " + r.getCostLong() + "\n";
             ans += "\n";
             ans += "=======================================================";
             ans += "\n";

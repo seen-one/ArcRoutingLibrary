@@ -27,6 +27,7 @@ package oarlib.teavm;
 import oarlib.util.SimpleLogger;
 import oarlib.core.Graph;
 import oarlib.core.Route;
+import oarlib.core.Solver;
 import oarlib.graph.impl.*;
 import oarlib.link.impl.*;
 import oarlib.problem.impl.cpp.DirectedCPP;
@@ -74,8 +75,7 @@ public class TeaVMWrapper {
                         DirectedGraph dg = OARLibParser.parseDirectedGraph(instanceContent);
                         DirectedCPP dcpp = new DirectedCPP(dg, "instance");
                         DCPPSolver_Edmonds dcppSolver = new DCPPSolver_Edmonds(dcpp);
-                        dcppSolver.trySolve();
-                        System.out.println(dcppSolver.printCurrentSol());
+                        solveAndPrint(dcppSolver);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -85,8 +85,7 @@ public class TeaVMWrapper {
                         UndirectedGraph ug = OARLibParser.parseUndirectedGraph(instanceContent);
                         UndirectedCPP ucpp = new UndirectedCPP(ug, "instance");
                         UCPPSolver_Edmonds ucppSolver = new UCPPSolver_Edmonds(ucpp);
-                        ucppSolver.trySolve();
-                        System.out.println(ucppSolver.printCurrentSol());
+                        solveAndPrint(ucppSolver);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -96,8 +95,7 @@ public class TeaVMWrapper {
                         MixedGraph mg = OARLibParser.parseMixedGraph(instanceContent);
                         MixedCPP mcpp = new MixedCPP(mg, "instance");
                         MCPPSolver_Frederickson mcppSolver = new MCPPSolver_Frederickson(mcpp);
-                        mcppSolver.trySolve();
-                        System.out.println(mcppSolver.printCurrentSol());
+                        solveAndPrint(mcppSolver);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -113,8 +111,7 @@ public class TeaVMWrapper {
                         }
                         MixedCPP mcpp2 = new MixedCPP(mg2, "Instance");
                         MCPPSolver_Yaoyuenyong mcppSolver2 = new MCPPSolver_Yaoyuenyong(mcpp2);
-                        mcppSolver2.trySolve();
-                        System.out.println(mcppSolver2.printCurrentSol());
+                        solveAndPrint(mcppSolver2);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -124,8 +121,7 @@ public class TeaVMWrapper {
                         WindyGraph wg = OARLibParser.parseWindyGraph(instanceContent);
                         WindyCPP wpp = new WindyCPP(wg, "Instance");
                         WRPPSolver_Win wppSolver = new WRPPSolver_Win(wpp);
-                        wppSolver.trySolve();
-                        System.out.println(wppSolver.printCurrentSol());
+                        solveAndPrint(wppSolver);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -191,11 +187,11 @@ public class TeaVMWrapper {
                         System.out.println("[DEBUG] Solver created successfully");
                         
                         System.out.println("[DEBUG] Calling trySolve()...");
-                        wrppSolver.trySolve();
+                        Collection<? extends Route> wrppResult = wrppSolver.trySolve();
                         System.out.println("[DEBUG] trySolve() completed");
                         
                         System.out.println("[DEBUG] Attempting to get solution...");
-                        System.out.println(wrppSolver.printCurrentSol());
+                        printSolutionOrFailure(wrppSolver, wrppResult);
                     } catch (Exception e) {
                         System.out.println("[ERROR] Exception in WRPP solver:");
                         e.printStackTrace();
@@ -205,6 +201,19 @@ public class TeaVMWrapper {
         } catch (NumberFormatException ex) {
             displayHelp();
         }
+    }
+
+    private static void solveAndPrint(Solver solver) throws Exception {
+        Collection<? extends Route> result = solver.trySolve();
+        printSolutionOrFailure(solver, result);
+    }
+
+    private static void printSolutionOrFailure(Solver solver, Collection<? extends Route> result) {
+        if (result == null || result.isEmpty()) {
+            System.out.println("ERROR: Solver failed to produce a solution.");
+            return;
+        }
+        System.out.println(solver.printCurrentSol());
     }
 
     /**
