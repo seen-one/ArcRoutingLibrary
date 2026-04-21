@@ -94,6 +94,43 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
         return ans;
     }
 
+    private static int countNonRequiredArcs(ArrayList<Arc> arcs) {
+        if (arcs == null) {
+            return 0;
+        }
+
+        int count = 0;
+        for (Arc arc : arcs) {
+            if (!arc.isRequired()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static Arc findNextNonRequiredArc(ArrayList<Arc> arcs) {
+        if (arcs == null) {
+            return null;
+        }
+
+        for (Arc arc : arcs) {
+            if (!arc.isRequired()) {
+                return arc;
+            }
+        }
+        return null;
+    }
+
+    private static IllegalStateException redundantCycleInvariantViolation(DirectedVertex tail,
+                                                                         DirectedVertex head,
+                                                                         String label,
+                                                                         int requestedFlow,
+                                                                         int removableCount) {
+        return new IllegalStateException("eliminateRedundantCycles invariant mismatch for label " + label
+                + " between vertices " + tail.getId() + " and " + head.getId()
+                + ": requestedFlow=" + requestedFlow + ", removableCount=" + removableCount);
+    }
+
     public WRPPSolver_Win(Problem<WindyVertex, WindyEdge, WindyGraph> instance) throws IllegalArgumentException {
         super(instance);
     }
@@ -414,17 +451,18 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
                     vdvConnections = vNeighbors.get(dv);
                     isReq = vdvConnections.get(0).isRequired();
                     xij = vdvConnections.size();
+                    int nonRequiredCount = countNonRequiredArcs(vdvConnections);
                     tempCost = vdvConnections.get(0).getCostLong();
 
-                    if (xij >= 3 && isReq) //a
+                    if (xij >= 3 && isReq && nonRequiredCount >= 2) //a
                     {
                         temp = flowGraph.constructEdge(dv.getId(), v.getId(), "a", -2 * tempCost);
-                        temp.setCapacity((int) Math.floor((xij - 1) / 2.0));
+                        temp.setCapacity(nonRequiredCount / 2);
                         flowGraph.addEdge(temp);
-                    } else if (xij >= 2 && !isReq) //b
+                    } else if (xij >= 2 && !isReq && nonRequiredCount >= 2) //b
                     {
                         temp = flowGraph.constructEdge(dv.getId(), v.getId(), "b", -2 * tempCost);
-                        temp.setCapacity((int) Math.floor((xij) / 2.0));
+                        temp.setCapacity(nonRequiredCount / 2);
                         flowGraph.addEdge(temp);
                     } else if (xij > 0) //c
                     {
@@ -453,7 +491,6 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
             WindyEdge replaceDir;
             DirectedVertex u1, u2;
 
-            int indexToRemove;
             for (int i = 1; i < flowanswer.length; i++) {
                 temp = flowArcs.get(i);
                 u1 = ansVertices.get(temp.getTail().getId());
@@ -463,18 +500,31 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
                     //remove two copies of arc ji from ans
                     removeCandidates = u2.getNeighbors().get(u1);
                     for (int j = 0; j < flowanswer[i]; j++) {
-                        indexToRemove = 0;
-                        while (removeCandidates.get(indexToRemove).isRequired())
-                            indexToRemove++;
-                        ans.removeEdge(removeCandidates.get(indexToRemove));
-                        while (removeCandidates.get(indexToRemove).isRequired())
-                            indexToRemove++;
-                        ans.removeEdge(removeCandidates.get(indexToRemove));
+                        int removableCount = countNonRequiredArcs(removeCandidates);
+                        if (removableCount < 2) {
+                            throw redundantCycleInvariantViolation(u2, u1, temp.getLabel(), flowanswer[i], removableCount);
+                        }
+
+                        Arc firstRemoval = findNextNonRequiredArc(removeCandidates);
+                        if (firstRemoval == null) {
+                            throw redundantCycleInvariantViolation(u2, u1, temp.getLabel(), flowanswer[i], removableCount);
+                        }
+                        ans.removeEdge(firstRemoval);
+
+                        Arc secondRemoval = findNextNonRequiredArc(removeCandidates);
+                        if (secondRemoval == null) {
+                            throw redundantCycleInvariantViolation(u2, u1, temp.getLabel(), flowanswer[i], countNonRequiredArcs(removeCandidates));
+                        }
+                        ans.removeEdge(secondRemoval);
                     }
                 } else if (flowanswer[i] > 0)//c
                 {
                     //change the orientation of arc ji
                     removeCandidates = u2.getNeighbors().get(u1);
+                    if (removeCandidates == null || removeCandidates.isEmpty()) {
+                        throw new IllegalStateException("eliminateRedundantCycles missing orientation candidate between vertices "
+                                + u2.getId() + " and " + u1.getId() + " for flow " + flowanswer[i]);
+                    }
                     changeDir = removeCandidates.get(0);
                     replaceDir = windyReqEdges.get(changeDir.getMatchId());
                     if (changeDir.getCostLong() == replaceDir.getCostLong())

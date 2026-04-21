@@ -13,8 +13,11 @@ import oarlib.graph.impl.WindyGraph;
 import oarlib.graph.util.CommonAlgorithms;
 import oarlib.link.impl.Arc;
 import oarlib.link.impl.Edge;
+import oarlib.problem.impl.cpp.WindyCPP;
 import oarlib.problem.impl.cpp.DirectedCPP;
 import oarlib.problem.impl.cpp.UndirectedCPP;
+import oarlib.problem.impl.io.ProblemFormat;
+import oarlib.problem.impl.io.ProblemReader;
 import oarlib.solver.impl.DCPPSolver_Edmonds;
 import oarlib.solver.impl.WRPPSolver_Win;
 import oarlib.solver.impl.UCPPSolver_Edmonds;
@@ -22,6 +25,8 @@ import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.UndirectedVertex;
 import org.junit.Test;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -104,6 +109,24 @@ public class SingleVehicleSolverTestSuite {
         assertEquals("Repaired path should have the cheaper total cost.", 9L, repairedCost);
         assertTrue("Repair should include 1->2.", foundFirstSegment);
         assertTrue("Repair should include 2->3.", foundSecondSegment);
+    }
+
+    @Test
+    public void testWinWRPPSolverMode5RegressionFixture() throws Exception {
+        Path fixturePath = Paths.get("test_instances", "regressions", "test.oarlib");
+        ProblemReader reader = new ProblemReader(ProblemFormat.Name.OARLib);
+        WindyGraph graph = (WindyGraph) reader.readGraph(fixturePath.toString());
+
+        WindyCPP problem = new WindyCPP(graph, "mode-5-regression");
+        WRPPSolver_Win solver = new WRPPSolver_Win(problem);
+        Collection<? extends Route> routes = solver.trySolve();
+
+        assertNotNull("Solver should produce a route collection.", routes);
+        assertTrue("Solver should produce at least one route.", !routes.isEmpty());
+
+        Route route = routes.iterator().next();
+        assertTrue("Route cost should be positive.", route.getCostLong() > 0);
+        assertTrue("Printed solution should include the route cost heading.", solver.printCurrentSol().contains("Route Cost:"));
     }
 
     @Test
