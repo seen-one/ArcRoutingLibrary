@@ -21,7 +21,7 @@ To compile, install JDK and Maven then run this command
 
 * Prepared for Maven compiling
 * TeaVM doesn't support most libraries, most aren't needed so they are stubbed or are replaced with something simpler
-* Blossom V replaced with greedy
+* Blossom V with Blossom inplementation from JGraphT
 * mode 6 (Christofides's Directed Rural Postman heuristic) disabled due to MSArbor requirement
 * Hierholzer forward movement preference
 * More
