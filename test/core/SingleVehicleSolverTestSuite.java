@@ -25,6 +25,7 @@ import oarlib.vertex.impl.DirectedVertex;
 import oarlib.vertex.impl.UndirectedVertex;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -144,6 +145,25 @@ public class SingleVehicleSolverTestSuite {
             assertTrue("Tour should avoid an immediate U-turn at degree-2 vertex 2 when another unused edge exists.",
                     !(curr == 2 && prev == next));
         }
+    }
+
+    @Test
+    public void testHierholzerAvoidsEnteringForcedReturnBranchTooEarly() throws Exception {
+        DirectedGraph graph = new DirectedGraph(4);
+        graph.setDepotId(1);
+        graph.addEdge(1, 2, "spur-out", 1L, true);
+        graph.addEdge(2, 1, "spur-back", 1L, true);
+        graph.addEdge(1, 3, "through-out", 1L, true);
+        graph.addEdge(3, 4, "through-mid", 1L, true);
+        graph.addEdge(4, 1, "through-back", 1L, true);
+
+        Method chooser = CommonAlgorithms.class.getDeclaredMethod("selectHierholzerEdge", oarlib.core.Vertex.class, oarlib.core.Vertex.class, java.util.Map.class);
+        chooser.setAccessible(true);
+
+        Arc selected = (Arc) chooser.invoke(null, graph.getVertex(1), null, graph.getVertex(1).getNeighbors());
+
+        assertEquals("Lookahead should prefer the branch that can continue forward instead of entering a forced-return spur.",
+                3, selected.getHead().getId());
     }
 
     @Test

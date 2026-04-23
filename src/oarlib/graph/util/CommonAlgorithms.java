@@ -282,16 +282,59 @@ public class CommonAlgorithms {
             }
         });
 
-        if (prevVertex != null) {
-            int previousId = prevVertex.getId();
-            for (Link<? extends Vertex> candidate : candidates) {
-                if (getOtherEndpointId(candidate, currVertex) != previousId) {
-                    return candidate;
+        Link<? extends Vertex> best = null;
+        HierholzerCandidateScore bestScore = null;
+        for (Link<? extends Vertex> candidate : candidates) {
+            HierholzerCandidateScore score = scoreHierholzerCandidate(currVertex, prevVertex, candidate);
+            if (best == null || score.compareTo(bestScore) < 0) {
+                best = candidate;
+                bestScore = score;
+            }
+        }
+
+        return best;
+    }
+
+    private static HierholzerCandidateScore scoreHierholzerCandidate(Vertex currVertex,
+                                                                     Vertex prevVertex,
+                                                                     Link<? extends Vertex> candidate) {
+        Vertex nextVertex = getOtherEndpoint(candidate, currVertex);
+        int previousId = prevVertex == null ? -1 : prevVertex.getId();
+        int nextId = nextVertex.getId();
+
+        int totalForwardChoices = 0;
+        int returnChoices = 0;
+        int nonReturnChoices = 0;
+
+        Map<? extends Vertex, ? extends List<? extends Link<? extends Vertex>>> nextNeighbors = nextVertex.getNeighbors();
+        for (List<? extends Link<? extends Vertex>> links : nextNeighbors.values()) {
+            if (links == null) {
+                continue;
+            }
+            for (Link<? extends Vertex> option : links) {
+                // The chosen edge will be removed from the working graph before we arrive.
+                if (option.getId() == candidate.getId()) {
+                    continue;
+                }
+                totalForwardChoices++;
+                if (getOtherEndpointId(option, nextVertex) == currVertex.getId()) {
+                    returnChoices++;
+                } else {
+                    nonReturnChoices++;
                 }
             }
         }
 
-        return candidates.get(0);
+        boolean immediateBacktrack = previousId == nextId;
+        boolean forcedImmediateReturn = totalForwardChoices > 0 && nonReturnChoices == 0 && returnChoices > 0;
+        return new HierholzerCandidateScore(immediateBacktrack, forcedImmediateReturn, nonReturnChoices, totalForwardChoices);
+    }
+
+    private static Vertex getOtherEndpoint(Link<? extends Vertex> edge, Vertex currVertex) {
+        if (edge.getFirstEndpointId() == currVertex.getId()) {
+            return edge.getEndpoints().getSecond();
+        }
+        return edge.getEndpoints().getFirst();
     }
 
     private static int getOtherEndpointId(Link<? extends Vertex> edge, Vertex currVertex) {
@@ -299,6 +342,44 @@ public class CommonAlgorithms {
             return edge.getSecondEndpointId();
         }
         return edge.getFirstEndpointId();
+    }
+
+    private static final class HierholzerCandidateScore implements Comparable<HierholzerCandidateScore> {
+
+        private final int immediateBacktrackPenalty;
+        private final int forcedImmediateReturnPenalty;
+        private final int nonReturnChoices;
+        private final int totalForwardChoices;
+
+        private HierholzerCandidateScore(boolean immediateBacktrack,
+                                         boolean forcedImmediateReturn,
+                                         int nonReturnChoices,
+                                         int totalForwardChoices) {
+            immediateBacktrackPenalty = immediateBacktrack ? 1 : 0;
+            forcedImmediateReturnPenalty = forcedImmediateReturn ? 1 : 0;
+            this.nonReturnChoices = nonReturnChoices;
+            this.totalForwardChoices = totalForwardChoices;
+        }
+
+        @Override
+        public int compareTo(HierholzerCandidateScore other) {
+            if (other == null) {
+                return -1;
+            }
+            if (immediateBacktrackPenalty != other.immediateBacktrackPenalty) {
+                return immediateBacktrackPenalty - other.immediateBacktrackPenalty;
+            }
+            if (forcedImmediateReturnPenalty != other.forcedImmediateReturnPenalty) {
+                return forcedImmediateReturnPenalty - other.forcedImmediateReturnPenalty;
+            }
+            if (nonReturnChoices != other.nonReturnChoices) {
+                return other.nonReturnChoices - nonReturnChoices;
+            }
+            if (totalForwardChoices != other.totalForwardChoices) {
+                return other.totalForwardChoices - totalForwardChoices;
+            }
+            return 0;
+        }
     }
 
     private static int resolveEdgeCostFromPredecessor(Graph<? extends Vertex, ? extends Link<? extends Vertex>> g,
