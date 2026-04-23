@@ -112,6 +112,41 @@ public class SingleVehicleSolverTestSuite {
     }
 
     @Test
+    public void testHierholzerAvoidsImmediateBacktrackingWhenAlternativeExists() throws Exception {
+        DirectedGraph graph = new DirectedGraph(3);
+        graph.setDepotId(1);
+        graph.addEdge(1, 2, "a", 1L, true);
+        graph.addEdge(2, 1, "b", 1L, true);
+        graph.addEdge(2, 3, "c", 1L, true);
+        graph.addEdge(3, 2, "d", 1L, true);
+        graph.addEdge(1, 3, "e", 1L, true);
+        graph.addEdge(3, 1, "f", 1L, true);
+
+        ArrayList<Integer> trail = CommonAlgorithms.tryHierholzer(graph);
+
+        assertEquals("Euler tour should use every edge exactly once.", 6, trail.size());
+
+        TIntObjectHashMap<Arc> indexedEdges = graph.getInternalEdgeMap();
+        ArrayList<Integer> visitedVertices = new ArrayList<Integer>();
+        int current = graph.getDepotId();
+        visitedVertices.add(current);
+        for (int edgeId : trail) {
+            Arc arc = indexedEdges.get(edgeId);
+            assertEquals("Tour should remain contiguous.", current, arc.getTail().getId());
+            current = arc.getHead().getId();
+            visitedVertices.add(current);
+        }
+
+        for (int i = 1; i < visitedVertices.size() - 1; i++) {
+            int prev = visitedVertices.get(i - 1);
+            int curr = visitedVertices.get(i);
+            int next = visitedVertices.get(i + 1);
+            assertTrue("Tour should avoid an immediate U-turn at degree-2 vertex 2 when another unused edge exists.",
+                    !(curr == 2 && prev == next));
+        }
+    }
+
+    @Test
     public void testWinWRPPSolverMode5RegressionFixture() throws Exception {
         Path fixturePath = Paths.get("test_instances", "regressions", "test.oarlib");
         ProblemReader reader = new ProblemReader(ProblemFormat.Name.OARLib);

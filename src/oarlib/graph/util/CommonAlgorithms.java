@@ -184,7 +184,7 @@ public class CommonAlgorithms {
         //initialize current position variables
         Map<? extends Vertex, ? extends List<? extends Link<? extends Vertex>>> currNeighbors = start.getNeighbors();
         Vertex currVertex = start;
-        Vertex prevVertex;
+        Vertex prevVertex = null;
         Link<? extends Vertex> currEdge;
         Iterator<Vertex> vertexIter;
         boolean nextStart = true;
@@ -194,7 +194,7 @@ public class CommonAlgorithms {
         while (nextStart) {
             //greedily go until we've come back to start
             do {
-                currEdge = currNeighbors.values().iterator().next().get(0); //grab anybody
+                currEdge = selectHierholzerEdge(currVertex, prevVertex, currNeighbors);
                 if (useMatchIds)
                     edgeCycle.add(indexedOrigEdges.get(currEdge.getMatchId()).getMatchId());
                 else
@@ -242,6 +242,7 @@ public class CommonAlgorithms {
                 if (start.getNeighbors().size() != 0) {
                     simpleCycle.add(start);
                     currVertex = start;
+                    prevVertex = null;
                     currNeighbors = currVertex.getNeighbors();
                     nextStart = true;
                     break;
@@ -249,6 +250,55 @@ public class CommonAlgorithms {
             }
         }
         return edgeTrail;
+    }
+
+    private static Link<? extends Vertex> selectHierholzerEdge(Vertex currVertex,
+                                                               Vertex prevVertex,
+                                                               Map<? extends Vertex, ? extends List<? extends Link<? extends Vertex>>> currNeighbors) {
+
+        ArrayList<Link<? extends Vertex>> candidates = new ArrayList<Link<? extends Vertex>>();
+        for (List<? extends Link<? extends Vertex>> links : currNeighbors.values()) {
+            if (links != null) {
+                candidates.addAll(links);
+            }
+        }
+
+        if (candidates.isEmpty()) {
+            throw new IllegalStateException("Hierholzer found a vertex with no remaining incident edges.");
+        }
+
+        Collections.sort(candidates, new Comparator<Link<? extends Vertex>>() {
+            @Override
+            public int compare(Link<? extends Vertex> first, Link<? extends Vertex> second) {
+                int firstOther = getOtherEndpointId(first, currVertex);
+                int secondOther = getOtherEndpointId(second, currVertex);
+                if (firstOther != secondOther) {
+                    return firstOther - secondOther;
+                }
+                if (first.getMatchId() != second.getMatchId()) {
+                    return first.getMatchId() - second.getMatchId();
+                }
+                return first.getId() - second.getId();
+            }
+        });
+
+        if (prevVertex != null) {
+            int previousId = prevVertex.getId();
+            for (Link<? extends Vertex> candidate : candidates) {
+                if (getOtherEndpointId(candidate, currVertex) != previousId) {
+                    return candidate;
+                }
+            }
+        }
+
+        return candidates.get(0);
+    }
+
+    private static int getOtherEndpointId(Link<? extends Vertex> edge, Vertex currVertex) {
+        if (edge.getFirstEndpointId() == currVertex.getId()) {
+            return edge.getSecondEndpointId();
+        }
+        return edge.getFirstEndpointId();
     }
 
     private static int resolveEdgeCostFromPredecessor(Graph<? extends Vertex, ? extends Link<? extends Vertex>> g,
