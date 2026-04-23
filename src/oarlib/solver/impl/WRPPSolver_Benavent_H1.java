@@ -158,7 +158,7 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
             //connect with least cost edges
             Collection<UndirectedVertex> oddVertices = sortedUndirectedVertices(matchingGraph.getVertices());
             HashMap<Pair<Integer>, Edge> traverseIj = new HashMap<Pair<Integer>, Edge>(); //key is (i,j) where i < j, and value is true if the shortest average path cost is i to j, false if it's j to i
-            double costCandidate;
+            long costCandidate;
             Pair<Integer> candidateKey;
             for (UndirectedVertex v : oddVertices) {
                 CommonAlgorithms.dijkstrasAlgorithm(fullGraphCopy, v.getMatchId(), dist, path, edgePath);
@@ -167,12 +167,15 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
                     if (v.getId() == v2.getId())
                         continue;
 
-                    costCandidate = calculateAveragePathCost(fullGraphCopy, v.getMatchId(), v2.getMatchId(), path, edgePath);
+                    if (path[v2.getMatchId()] <= 0) {
+                        continue;
+                    }
+                    costCandidate = dist[v2.getMatchId()];
                     candidateKey = new Pair<Integer>(v2.getId(), v.getId());
 
                     if (!traverseIj.containsKey(candidateKey) || costCandidate < traverseIj.get(candidateKey).getCostLong()) {
                         traverseIj.remove(candidateKey);
-                        traverseIj.put(new Pair<Integer>(v.getId(), v2.getId()), new Edge("matchingEdge", new Pair<UndirectedVertex>(v, v2), (long) (2 * costCandidate)));
+                        traverseIj.put(new Pair<Integer>(v.getId(), v2.getId()), new Edge("matchingEdge", new Pair<UndirectedVertex>(v, v2), costCandidate));
                     }
                 }
             }
@@ -336,39 +339,6 @@ public class WRPPSolver_Benavent_H1 extends SingleVehicleSolver<WindyVertex, Win
             ans += (e.getCostLong() + e.getReverseCostLong());
         }
         return ans / m;
-    }
-
-    private static double calculateAveragePathCost(WindyGraph g, int i, int j, int[][] path, int[][] edgePath) {
-        int curr, end, next;
-        long ans;
-        curr = i;
-        end = j;
-        ans = 0;
-        WindyEdge temp;
-        TIntObjectHashMap<WindyEdge> indexedWindyEdges = g.getInternalEdgeMap();
-        do {
-            next = path[curr][end];
-            temp = requireEdge(indexedWindyEdges, edgePath[curr][end]);
-            ans += temp.getCostLong() + temp.getReverseCostLong();
-
-        } while ((curr = next) != end);
-        return ans / 2.0;
-    }
-
-    private static double calculateAveragePathCost(WindyGraph g, int i, int j, int[] path, int[] edgePath) {
-        int start, end, next;
-        long ans;
-        start = i;
-        end = j;
-        ans = 0;
-        WindyEdge temp;
-        TIntObjectHashMap<WindyEdge> indexedWindyEdges = g.getInternalEdgeMap();
-        do {
-            next = path[end];
-            temp = requireEdge(indexedWindyEdges, edgePath[end]);
-            ans += temp.getCostLong() + temp.getReverseCostLong();
-        } while ((end = next) != start);
-        return ans / 2.0;
     }
 
     @Override

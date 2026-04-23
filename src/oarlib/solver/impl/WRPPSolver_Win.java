@@ -266,8 +266,8 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
             }
 
             int comp1, comp2;
-            Double averagePathCost1;
-            HashMap<Pair<Integer>, Integer> minCostPathVal = new HashMap<Pair<Integer>, Integer>(); //key is components being connected, value is best cost btw them.
+            Long pathCostCandidate;
+            HashMap<Pair<Integer>, Long> minCostPathVal = new HashMap<Pair<Integer>, Long>(); //key is components being connected, value is best directed path cost between them.
             HashMap<Pair<Integer>, Pair<Integer>> minCostPathNodes = new HashMap<Pair<Integer>, Pair<Integer>>();
             Pair<Integer> tempKey;
             //figure out the min cost path from each component to each component
@@ -287,19 +287,19 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
                     if (comp1 == comp2)
                         continue;
 
-                    //the average path cost in the original graph from i to j
+                    //the actual directed path cost in the original graph from i to j
                     if (path[j] <= 0) {
                         continue;
                     }
-                    averagePathCost1 = calculateAveragePathCost(g, i, j, path, edgePath);
+                    pathCostCandidate = dist[j];
                     if (comp1 < comp2)
                         tempKey = new Pair<Integer>(comp1, comp2);
                     else
                         tempKey = new Pair<Integer>(comp2, comp1);
 
                     //If we found a shorter path, record it.
-                    if (!minCostPathVal.containsKey(tempKey) || ((int) (2 * averagePathCost1) < minCostPathVal.get(tempKey))) {
-                        minCostPathVal.put(tempKey, (int) (2 * averagePathCost1));
+                    if (!minCostPathVal.containsKey(tempKey) || pathCostCandidate < minCostPathVal.get(tempKey)) {
+                        minCostPathVal.put(tempKey, pathCostCandidate);
                         minCostPathNodes.put(tempKey, new Pair<Integer>(i, j));
                     }
                 }
@@ -853,7 +853,7 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
             }
 
             //connect with least cost edges
-            double costCandidate;
+            long costCandidate;
             ArrayList<UndirectedVertex> oddVertices = new ArrayList<UndirectedVertex>(matchingGraph.getVertices());
             Collections.sort(oddVertices, new Comparator<UndirectedVertex>() {
                 public int compare(UndirectedVertex first, UndirectedVertex second) {
@@ -869,12 +869,15 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
                     if (v.getId() == v2.getId())
                         continue;
 
-                    costCandidate = calculateAveragePathCost(fullGraph, v.getMatchId(), v2.getMatchId(), path, edgePath);
+                    if (path[v2.getMatchId()] <= 0) {
+                        continue;
+                    }
+                    costCandidate = dist[v2.getMatchId()];
                     candidateKey = new Pair<Integer>(v2.getId(), v.getId());
 
                     if (!traverseIj.containsKey(candidateKey) || costCandidate < traverseIj.get(candidateKey).getCostLong()) {
                         traverseIj.remove(candidateKey);
-                        traverseIj.put(new Pair<Integer>(v.getId(), v2.getId()), new Edge("matchingEdge", new Pair<UndirectedVertex>(v, v2), (int) (2 * costCandidate)));
+                        traverseIj.put(new Pair<Integer>(v.getId(), v2.getId()), new Edge("matchingEdge", new Pair<UndirectedVertex>(v, v2), costCandidate));
                     }
                 }
             }
@@ -1163,35 +1166,6 @@ public class WRPPSolver_Win extends SingleVehicleSolver<WindyVertex, WindyEdge, 
             return;
         }
 
-    }
-
-    private static double calculateAveragePathCost(WindyGraph g, int i, int j, int[] path, int[] edgePath) {
-        int start, end, next;
-        long ans;
-        start = i;
-        end = j;
-        ans = 0;
-        WindyEdge temp;
-        TIntObjectHashMap<WindyEdge> indexedWindyEdges = g.getInternalEdgeMap();
-        do {
-            next = path[end];
-            if (next <= 0 && end != start) {
-                LOGGER.error("calculateAveragePathCost encountered invalid predecessor; start=" + start + ", currentEnd=" + end + ", next=" + next);
-                throw new IllegalStateException("calculateAveragePathCost failed: predecessor index <= 0 before reaching start");
-            }
-            int edgeId = edgePath[end];
-            if (edgeId <= 0) {
-                LOGGER.error("calculateAveragePathCost encountered non-positive edge id; start=" + start + ", currentEnd=" + end + ", next=" + next + ", edgeId=" + edgeId);
-                throw new IllegalStateException("calculateAveragePathCost failed: edgePath <= 0 for current segment");
-            }
-            temp = indexedWindyEdges.get(edgeId);
-            if (temp == null) {
-                LOGGER.error("calculateAveragePathCost missing edge id " + edgeId + "; start=" + start + ", currentEnd=" + end);
-                throw new IllegalStateException("calculateAveragePathCost failed: missing edge id " + edgeId);
-            }
-            ans += temp.getCostLong() + temp.getReverseCostLong();
-        } while ((end = next) != start);
-        return ans / 2.0;
     }
 
     @Override

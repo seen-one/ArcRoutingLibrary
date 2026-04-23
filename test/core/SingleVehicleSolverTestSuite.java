@@ -13,6 +13,7 @@ import oarlib.graph.impl.WindyGraph;
 import oarlib.graph.util.CommonAlgorithms;
 import oarlib.link.impl.Arc;
 import oarlib.link.impl.Edge;
+import oarlib.link.impl.WindyEdge;
 import oarlib.problem.impl.cpp.WindyCPP;
 import oarlib.problem.impl.cpp.DirectedCPP;
 import oarlib.problem.impl.cpp.UndirectedCPP;
@@ -182,6 +183,46 @@ public class SingleVehicleSolverTestSuite {
         Route route = routes.iterator().next();
         assertTrue("Route cost should be positive.", route.getCostLong() > 0);
         assertTrue("Printed solution should include the route cost heading.", solver.printCurrentSol().contains("Route Cost:"));
+    }
+
+    @Test
+    public void testWRPPConnectRequiredComponentsPrefersDirectedShortestPath() throws Exception {
+        WindyGraph graph = new WindyGraph(5);
+        graph.addEdge(1, 2, "required-left", 1L, 1L, true);
+        graph.addEdge(4, 5, "required-right", 1L, 1L, true);
+        graph.addEdge(2, 3, "cheap-forward-step-1", 1L, 100L, false);
+        graph.addEdge(3, 4, "cheap-forward-step-2", 1L, 100L, false);
+        graph.addEdge(2, 4, "expensive-direct", 60L, 60L, false);
+
+        WindyGraph connected = WRPPSolver_Win.connectRequiredComponents(graph);
+
+        assertNotNull("Connection phase should return a graph.", connected);
+
+        boolean added23 = false;
+        boolean added34 = false;
+        boolean added24 = false;
+        int mstAddedEdges = 0;
+        for (WindyEdge edge : connected.getEdges()) {
+            if (!"mst added".equals(edge.getLabel())) {
+                continue;
+            }
+
+            mstAddedEdges++;
+            int first = edge.getFirstEndpointId();
+            int second = edge.getSecondEndpointId();
+            if ((first == 2 && second == 3) || (first == 3 && second == 2)) {
+                added23 = true;
+            } else if ((first == 3 && second == 4) || (first == 4 && second == 3)) {
+                added34 = true;
+            } else if ((first == 2 && second == 4) || (first == 4 && second == 2)) {
+                added24 = true;
+            }
+        }
+
+        assertEquals("The connector should add exactly the two cheap directed path edges.", 2, mstAddedEdges);
+        assertTrue("Connection phase should include 2-3 from the cheap directed path.", added23);
+        assertTrue("Connection phase should include 3-4 from the cheap directed path.", added34);
+        assertTrue("Connection phase should avoid the more expensive direct connector.", !added24);
     }
 
     @Test
